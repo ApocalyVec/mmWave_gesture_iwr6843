@@ -1,20 +1,55 @@
+import time
+
 import serial
+
+from parse_tlv import tlvHeader
+
+data_timeout = 0.000012  # timeout for 921600 baud; 0.00000868055 for a byte
 
 
 def serialConfig(configFileName, dataPortName, userPortName):
     # Open the serial ports for the configuration and the data ports
     try:
-        cliPort = serial.Serial(userPortName, 115200)
-        dataPort = serial.Serial(dataPortName, 921600)
+        cliPort = serial.Serial(userPortName,
+                                115200)  # CLI port cannot have timeout because the stream is user-programmed
+        dataPort = serial.Serial(dataPortName, 921600, timeout=data_timeout)
     except serial.SerialException as se:
-        print('Serial Port Occupied, error = ')
-        print(str(se))
-        return
+        raise Exception('Serial Port Occupied, error = ' + str(se))
 
+    dataPort.reset_input_buffer()
+    cliPort.reset_input_buffer()
+    cliPort.reset_output_buffer()
     # Read the configuration file and send it to the board
     config = [line.rstrip('\r\n') for line in open(configFileName)]
-    for i in config:
-        cliPort.write((i + '\n').encode())
-        print(i)
+    for line in config:
+        cliPort.write((line + '\r').encode())
+        time.sleep(0.01)
+
+    cli_result = cliPort.read(cliPort.in_waiting).decode()
+    print(cli_result)  # CLI output of the board
 
     return cliPort, dataPort
+
+
+def sensor_stop(cli_port):
+    cli_port.write(('sensorStop\n').encode())
+    result = cli_port.read(cli_port.in_waiting).decode()
+
+    print(result)
+
+
+data_buffer = b''
+data_chunk_size = 32  # this MUST be 32 for TLV to work without magic number
+
+
+def parse_stream(data_port):
+    global data_buffer
+
+    data_buffer += data_port.read(data_chunk_size)
+    is_packet_complete, leftover_data, detected_points = tlvHeader(data_buffer)
+
+    if is_packet_complete:
+        data_buffer = b'' + leftover_data
+        return detected_points
+    else:
+        return None
