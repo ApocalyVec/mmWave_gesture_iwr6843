@@ -4,7 +4,7 @@ import serial
 
 from parse_tlv import tlvHeader
 
-data_timeout = 0.000012  # timeout for 921600 baud; 0.00000868055 for a byte
+data_timeout = 0.000015  # timeout for 921600 baud; 0.00000868055 for a byte
 
 
 def serialConfig(configFileName, dataPortName, userPortName):
@@ -25,6 +25,7 @@ def serialConfig(configFileName, dataPortName, userPortName):
         cliPort.write((line + '\r').encode())
         time.sleep(0.01)
 
+    time.sleep(1)
     cli_result = cliPort.read(cliPort.in_waiting).decode()
     print(cli_result)  # CLI output of the board
 
@@ -37,17 +38,25 @@ def sensor_stop(cli_port):
 
     print(result)
 
+def close_connection(user_port, data_port):
+    user_port.close()
+    data_port.close()
+
 
 data_buffer = b''
 data_chunk_size = 32  # this MUST be 32 for TLV to work without magic number
-
+data_buffer_max_size = 3200
 
 def parse_stream(data_port):
     global data_buffer
 
     data_buffer += data_port.read(data_chunk_size)
-    is_packet_complete, leftover_data, detected_points = tlvHeader(data_buffer)
 
+    if len(data_buffer) > data_buffer_max_size:
+        raise Exception('Buffer Overflows')
+
+    is_packet_complete, leftover_data, detected_points = tlvHeader(data_buffer)
+    # print()
     if is_packet_complete:
         data_buffer = b'' + leftover_data
         return detected_points

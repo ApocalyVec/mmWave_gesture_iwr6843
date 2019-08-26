@@ -12,7 +12,7 @@ from mpl_toolkits.mplot3d import Axes3D
 
 # data queue global
 data_q = collections.deque(maxlen=100)
-# data_list = []
+data_list = []
 
 # set up graph
 # START QtAPPfor the plot
@@ -59,32 +59,44 @@ class PlottingThread(threading.Thread):
 def main():
     global global_stop_flag
 
-    configFileName = 'profile.cfg'
+    configFileName = 'profile_tuned.cfg'
     dataPortName = 'COM9'
     userPortName = 'COM8'
 
+    # start threads
+    # thread2 = PlottingThread()
+    # thread2.start()
+
+
     # open the serial port to the radar
     user_port, data_port = serial_iwr6843.serialConfig(configFileName, dataPortName=dataPortName, userPortName=userPortName)
-
-    # start threads
-    thread2 = PlottingThread()
-    thread2.start()
-
+    input('Press Enter to Start...')
     while 1:
         try:
             detected_points = serial_iwr6843.parse_stream(data_port)
             if detected_points is not None:
                 data_q.append(detected_points)
-                # data_list.append((time.time(), detected_points))
+                data_list.append((time.time(), detected_points))
 
+                xy_graph.setData(detected_points[:, 0], detected_points[:, 1])
+                zd_graph.setData(detected_points[:, 2], detected_points[:, 3])
             QtGui.QApplication.processEvents()
-        except KeyboardInterrupt:
+        except KeyboardInterrupt as ki:
             global_stop_flag = True
             print('Sending Stop Command')
             serial_iwr6843.sensor_stop(user_port)
+            serial_iwr6843.close_connection(user_port, data_port)
             win.close()
 
-            thread2.join()
+            print('The number of frame collected is ' + str(len(data_list)))
+            time_record = max(x[0] for x in data_list) - min(x[0] for x in data_list)
+            expected_frame_num = time_record * 15
+            frame_drop_rate = len(data_list) / expected_frame_num
+            print('Recording time is ' + str(time_record))
+            print('The expected frame num is ' + str(expected_frame_num))
+            print('Frame drop rate is ' + str(1 - frame_drop_rate))
+
+            # thread2.join()
 
             break
 

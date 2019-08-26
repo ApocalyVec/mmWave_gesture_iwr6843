@@ -41,13 +41,13 @@ def parseStats(data, tlvLength):
     # print("\t\tInterprocess:\t%d " % (interProcess))
 
 
-def tlvHeader(data):
+def tlvHeader(in_data):
     magic = b'\x02\x01\x04\x03\x06\x05\x08\x07'
     headerLength = 36
 
-    print('Current data len is: ' + str(len(data)))
-    # offset = in_data.find(magic)
-    # data = in_data[offset:]
+    print('Current data len is: ' + str(len(in_data)))
+    offset = in_data.find(magic)
+    data = in_data[offset:]
 
     try:
         magic, version, length, platform, frameNum, cpuCycles, numObj, numTLVs = struct.unpack('Q7I',
@@ -64,7 +64,7 @@ def tlvHeader(data):
     if version > 0x01000005 and len(data) >= length:
         subFrameNum = struct.unpack('I', data[36:40])[0]
         headerLength = 40
-        # print("Subframe:\t%d "%(subFrameNum))
+        print("Subframe:\t%d "%(subFrameNum))
         pendingBytes = length - headerLength
         data = data[headerLength:]
 
@@ -82,8 +82,8 @@ def tlvHeader(data):
             elif (tlvType == 6):
                 parseStats(data, tlvLength)
             else:
+                print("Unidentified tlv type %d"%(tlvType), 'Its len is ' + str(tlvLength))
                 pass
-                print("Unidentified tlv type %d"%(tlvType))
             data = data[tlvLength:]
             pendingBytes -= (8 + tlvLength)
         data = data[pendingBytes:]  # data that are left
