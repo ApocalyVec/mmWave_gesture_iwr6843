@@ -2,7 +2,7 @@ import time
 
 import serial
 
-from parse_tlv import tlvHeader
+from iwr6843_utils.parse_tlv import tlvHeader
 
 data_timeout = 0.000015  # timeout for 921600 baud; 0.00000868055 for a byte
 
@@ -48,6 +48,11 @@ data_chunk_size = 32  # this MUST be 32 for TLV to work without magic number
 data_buffer_max_size = 3200
 
 def parse_stream(data_port):
+    """
+
+    :param data_port:
+    :return: will be None if the data packet is not complete yet
+    """
     global data_buffer
 
     data_buffer += data_port.read(data_chunk_size)
@@ -56,7 +61,7 @@ def parse_stream(data_port):
         raise Exception('Buffer Overflows')
 
     is_packet_complete, leftover_data, detected_points = tlvHeader(data_buffer)
-    # print()
+
     if is_packet_complete:
         data_buffer = b'' + leftover_data
         return detected_points

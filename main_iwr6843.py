@@ -1,14 +1,9 @@
 import time
-import serial_iwr6843
+from iwr6843_utils import serial_iwr6843
 import collections
 from pyqtgraph.Qt import QtGui
 import pyqtgraph as pg
 import threading
-
-import matplotlib.pyplot as plt
-import matplotlib.animation as animation
-from matplotlib import style
-from mpl_toolkits.mplot3d import Axes3D
 
 # data queue global
 data_q = collections.deque(maxlen=100)
@@ -59,7 +54,7 @@ class PlottingThread(threading.Thread):
 def main():
     global global_stop_flag
 
-    configFileName = 'profile_tuned.cfg'
+    configFileName = 'profiles/profile_tuned.cfg'
     dataPortName = 'COM9'
     userPortName = 'COM8'
 
@@ -67,27 +62,33 @@ def main():
     # thread2 = PlottingThread()
     # thread2.start()
 
-
     # open the serial port to the radar
     user_port, data_port = serial_iwr6843.serialConfig(configFileName, dataPortName=dataPortName, userPortName=userPortName)
     input('Press Enter to Start...')
     while 1:
         try:
             detected_points = serial_iwr6843.parse_stream(data_port)
+
             if detected_points is not None:
                 data_q.append(detected_points)
                 data_list.append((time.time(), detected_points))
 
                 xy_graph.setData(detected_points[:, 0], detected_points[:, 1])
                 zd_graph.setData(detected_points[:, 2], detected_points[:, 3])
+            else:
+                print('Packet is not complete yet!')
+
             QtGui.QApplication.processEvents()
         except KeyboardInterrupt as ki:
             global_stop_flag = True
             print('Sending Stop Command')
+            # close the connection to the sensor
             serial_iwr6843.sensor_stop(user_port)
             serial_iwr6843.close_connection(user_port, data_port)
+            # close qtgui window
             win.close()
 
+            # print the information about the frames collected
             print('The number of frame collected is ' + str(len(data_list)))
             time_record = max(x[0] for x in data_list) - min(x[0] for x in data_list)
             expected_frame_num = time_record * 15
@@ -96,7 +97,6 @@ def main():
             print('The expected frame num is ' + str(expected_frame_num))
             print('Frame drop rate is ' + str(1 - frame_drop_rate))
 
-            # thread2.join()
 
             break
 
