@@ -55,7 +55,8 @@ def tlvHeader(in_data):
     # print('Current data len is: ' + str(len(in_data)))
     offset = in_data.find(magic)
     data = in_data[offset:]
-
+    if len(data) < headerLength:
+        return False, None, None
     try:
         magic, version, length, platform, frameNum, cpuCycles, numObj, numTLVs = struct.unpack('Q7I',
                                                                                                data[:headerLength])
@@ -69,30 +70,34 @@ def tlvHeader(in_data):
     # print("Detect Obj:\t%d "%(numObj))
     # print("Platform:\t%X "%(platform))
     if version > 0x01000005 and len(data) >= length:
-        subFrameNum = struct.unpack('I', data[36:40])[0]
-        headerLength = 40
-        # print("Subframe:\t%d "%(subFrameNum))
-        pendingBytes = length - headerLength
-        data = data[headerLength:]
+        try:
+            subFrameNum = struct.unpack('I', data[36:40])[0]
+            headerLength = 40
+            # print("Subframe:\t%d "%(subFrameNum))
+            pendingBytes = length - headerLength
+            data = data[headerLength:]
 
-        for i in range(numTLVs):
-            tlvType, tlvLength = tlvHeaderDecode(data[:8])
-            data = data[8:]
-            if tlvType == 1:
-                print('Outputting Points')
-                detected_points = parseDetectedObjects(data, numObj,
-                                                       tlvLength)  # if no detected points, tlvType won't have 1
-            elif tlvType == 2:
-                parseRangeProfile(data, tlvLength)
-            elif tlvType == 6:
-                parseStats(data, tlvLength)
-            else:
-                # print("Unidentified tlv type %d" % tlvType, 'Its len is ' + str(tlvLength))
-                pass
-            data = data[tlvLength:]
-            pendingBytes -= (8 + tlvLength)
-        data = data[pendingBytes:]  # data that are left
-        return True, data, detected_points
+            for i in range(numTLVs):
+                tlvType, tlvLength = tlvHeaderDecode(data[:8])
+                data = data[8:]
+                if tlvType == 1:
+                    # print('Outputting Points')
+                    detected_points = parseDetectedObjects(data, numObj,
+                                                           tlvLength)  # if no detected points, tlvType won't have 1
+                elif tlvType == 2:
+                    parseRangeProfile(data, tlvLength)
+                elif tlvType == 6:
+                    parseStats(data, tlvLength)
+                else:
+                    # print("Unidentified tlv type %d" % tlvType, 'Its len is ' + str(tlvLength))
+                    pass
+                data = data[tlvLength:]
+                pendingBytes -= (8 + tlvLength)
+            data = data[pendingBytes:]  # data that are left
+            return True, data, detected_points
+        except struct.error:
+            # print('Packet is not complete yet')
+            pass
 
     return False, None, None
 

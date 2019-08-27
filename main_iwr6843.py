@@ -1,13 +1,18 @@
 import time
+
 from iwr6843_utils import serial_iwr6843
 import collections
 from pyqtgraph.Qt import QtGui
 import pyqtgraph as pg
 import threading
+import matplotlib.pyplot as plt
 
 # data queue global
+from utils.data_utils import preprocess_frame
+
 data_q = collections.deque(maxlen=100)
 data_list = []
+processed_data_list = []
 
 # set up graph
 # START QtAPPfor the plot
@@ -35,21 +40,19 @@ zd_graph = fig_z_v.plot([], [], pen=None, symbol='o')
 global_stop_flag = False
 
 
-class PlottingThread(threading.Thread):
+class ProcessingThread(threading.Thread):
     def __init__(self):
         threading.Thread.__init__(self)
 
     def run(self):
         global global_stop_flag
-        global xy_graph
-        global zd_graph
+        global processed_data_list
 
         while not global_stop_flag:
-            if len(data_q) > 0:
+            if len(data_q) != 0:
                 data = data_q.pop()
-                xy_graph.setData(data[:, 0], data[:, 1])
-                zd_graph.setData(data[:, 2], data[:, 3])
-            time.sleep(0.033)
+                processed_data_list.append(preprocess_frame(data))
+
 
 def main():
     global global_stop_flag
@@ -58,9 +61,8 @@ def main():
     dataPortName = 'COM9'
     userPortName = 'COM8'
 
-    # start threads
-    # thread2 = PlottingThread()
-    # thread2.start()
+    # processing_thread = ProcessingThread()
+    # processing_thread.start()
 
     # open the serial port to the radar
     user_port, data_port = serial_iwr6843.serialConfig(configFileName, dataPortName=dataPortName, userPortName=userPortName)
@@ -70,16 +72,21 @@ def main():
             detected_points = serial_iwr6843.parse_stream(data_port)
 
             if detected_points is not None:
+                frame_timestamp = time.time()
                 data_q.append(detected_points)
-                data_list.append((time.time(), detected_points))
+                data_list.append((frame_timestamp, detected_points))
+                processed_data_list.append((frame_timestamp, preprocess_frame(detected_points)))
 
                 xy_graph.setData(detected_points[:, 0], detected_points[:, 1])
                 zd_graph.setData(detected_points[:, 2], detected_points[:, 3])
             else:
-                print('Packet is not complete yet!')
+                pass
+                # print('Packet is not complete yet!')
 
             QtGui.QApplication.processEvents()
-        except KeyboardInterrupt as ki:
+        except KeyboardInterrupt as es:
+            time.sleep(1)
+
             global_stop_flag = True
             print('Sending Stop Command')
             # close the connection to the sensor
@@ -87,6 +94,9 @@ def main():
             serial_iwr6843.close_connection(user_port, data_port)
             # close qtgui window
             win.close()
+
+            # wait for the threads to join
+            # processing_thread.join()
 
             # print the information about the frames collected
             print('The number of frame collected is ' + str(len(data_list)))
@@ -97,7 +107,16 @@ def main():
             print('The expected frame num is ' + str(expected_frame_num))
             print('Frame drop rate is ' + str(1 - frame_drop_rate))
 
-
+            # do you wish to save the recorded frames?
+            # is_save = input('do you wish to save the recorded frames? [y/n]')
+            #
+            # if is_save == 'y':
+            #     os.mkdir(root_dn)
+            #     file_path = os.path.join(root_dn, 'f_data.p')
+            #     with open(file_path, 'wb') as pickle_file:
+            #         pickle.dump(frameData, pickle_file)
+            # else:
+            #     print('exit without saving')
             break
 
 

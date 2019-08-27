@@ -55,15 +55,19 @@ def parse_stream(data_port):
     """
     global data_buffer
 
-    data_buffer += data_port.read(data_chunk_size)
+    try:
+        data_buffer += data_port.read(data_chunk_size)
 
-    if len(data_buffer) > data_buffer_max_size:
-        raise Exception('Buffer Overflows')
+        if len(data_buffer) > data_buffer_max_size:
+            raise Exception('Buffer Overflows')
 
-    is_packet_complete, leftover_data, detected_points = tlvHeader(data_buffer)
+        is_packet_complete, leftover_data, detected_points = tlvHeader(data_buffer)
 
-    if is_packet_complete:
-        data_buffer = b'' + leftover_data
-        return detected_points
-    else:
-        return None
+        if is_packet_complete:
+            data_buffer = b'' + leftover_data
+            return detected_points
+        else:
+            return None
+    except serial.serialutil.SerialException as ssse:
+        print('Data port not open.')
+        return
