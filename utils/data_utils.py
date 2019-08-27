@@ -74,7 +74,7 @@ def plot_confusion_matrix(y_true, y_pred, classes,
 
 DBSCAN_esp = 0.2
 DBSCAN_minSamples = 3
-def preprocess_frame(points, isCluster=True, isClipping=False):
+def produce_voxel(points, isCluster=True, isClipping=False):
     """
 
     :param frame: np array with input shape (n, 4)
@@ -138,7 +138,7 @@ def preprocess_frame(points, isCluster=True, isClipping=False):
     hand_cluster = np.array(hand_cluster)
     frame_3D_volume = snapPointsToVolume(hand_cluster, volume_shape, isClipping=isClipping)
 
-    return frame_3D_volume
+    return np.expand_dims(frame_3D_volume,axis=0)
 
 # frameArray = np.load('F:/test_frameArray.npy')
 # start = time.time()

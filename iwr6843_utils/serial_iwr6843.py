@@ -16,9 +16,6 @@ def serialConfig(configFileName, dataPortName, userPortName):
     except serial.SerialException as se:
         raise Exception('Serial Port Occupied, error = ' + str(se))
 
-    dataPort.reset_input_buffer()
-    cliPort.reset_input_buffer()
-    cliPort.reset_output_buffer()
     # Read the configuration file and send it to the board
     config = [line.rstrip('\r\n') for line in open(configFileName)]
     for line in config:
@@ -45,12 +42,22 @@ def sensor_stop(cli_port):
     print(result)
 
 def close_connection(user_port, data_port):
+    user_port.reset_input_buffer()
+    user_port.reset_output_buffer()
+
+    data_port.reset_input_buffer()
+    data_port.reset_output_buffer()
+
     user_port.close()
     data_port.close()
 
 
-def clear_serial_input_buffer(dataPort):
-    dataPort.reset_input_buffer()
+def clear_serial_buffer(user_port, data_port):
+    user_port.reset_input_buffer()
+    user_port.reset_output_buffer()
+
+    data_port.reset_input_buffer()
+    data_port.reset_output_buffer()
 
 
 data_buffer = b''
