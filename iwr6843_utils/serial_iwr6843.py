@@ -32,6 +32,12 @@ def serialConfig(configFileName, dataPortName, userPortName):
     return cliPort, dataPort
 
 
+def sensor_start(cli_port):
+    cli_port.write(('sensorStart\n').encode())
+    result = cli_port.read(cli_port.in_waiting).decode()
+
+    print(result)
+
 def sensor_stop(cli_port):
     cli_port.write(('sensorStop\n').encode())
     result = cli_port.read(cli_port.in_waiting).decode()
@@ -41,6 +47,10 @@ def sensor_stop(cli_port):
 def close_connection(user_port, data_port):
     user_port.close()
     data_port.close()
+
+
+def clear_serial_input_buffer(dataPort):
+    dataPort.reset_input_buffer()
 
 
 data_buffer = b''
