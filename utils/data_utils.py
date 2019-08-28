@@ -7,13 +7,12 @@ from sklearn.cluster import DBSCAN
 from sklearn.metrics import confusion_matrix
 import matplotlib.pyplot as plt
 
-
 import time
 
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.utils.multiclass import unique_labels
 
-from utils.path_utils import snapPointsToVolume
+from utils.transformation import translate, sphere_search, rotateZ, rotateY, rotateX, scale
 
 
 volume_shape = [25, 25, 25]
@@ -84,13 +83,13 @@ def produce_voxel(points, isCluster=True, isClipping=False):
         return np.zeros(tuple([1] + volume_shape))
 
     if isCluster:
-        doppler_dict = {}
-        for point in points:
-            doppler_dict[tuple(point[:3])] = point[3:]
-        # get rid of the doppler for clustering TODO should we consider the doppler in clustering?
-        points = points[:, :3]
-
+        # take off the doppler for clustering
+        doppler_col = np.copy(points[:, 3])
+        points[:, 3] = np.zeros(points[:, 3].shape)
         db = DBSCAN(eps=DBSCAN_esp, min_samples=DBSCAN_minSamples).fit(points)
+        # append back the doppler
+        points[:, 3] = doppler_col
+
         core_samples_mask = np.zeros_like(db.labels_, dtype=bool)
         core_samples_mask[db.core_sample_indices_] = True
         labels = db.labels_
@@ -108,9 +107,6 @@ def produce_voxel(points, isCluster=True, isClipping=False):
             # each cluster is a 3 * n matrix
             xyz = points[class_member_mask & ~core_samples_mask]
 
-        # find the center for each cluster
-        # clusters_centers = list(
-        #     map(lambda xyz: np.array([np.mean(xyz[:, 0]), np.mean(xyz[:, 1]), np.mean(xyz[:, 2])]), clusters))
         clusters.sort(key=lambda xyz: distance.euclidean((0.0, 0.0, 0.0), np.array(
             [np.mean(xyz[:, 0]), np.mean(xyz[:, 1]), np.mean(xyz[:, 2])])))
 
@@ -118,27 +114,60 @@ def produce_voxel(points, isCluster=True, isClipping=False):
         hand_cluster = []
         if len(clusters) > 0:
             hand_cluster = clusters[0]
-            point_num = hand_cluster.shape[0]
 
-            # if the cluster is outside the 20*20*20 cm bounding box
-            distance_from_center = distance.euclidean((0.0, 0.0, 0.0), np.array(
-                [np.mean(hand_cluster[:, 0]), np.mean(hand_cluster[:, 1]), np.mean(hand_cluster[:, 2])]))
-
-            # if distance_from_center > distance.euclidean((0.0, 0.0, 0.0),
-            #                                              bbox):  # if the core of the cluster is too far away from the center
-            #     hand_cluster = np.zeros((hand_cluster.shape[0], hand_cluster.shape[1] + 1))
-            doppler_array = np.zeros((point_num, 1))
-            for j in range(point_num):
-                doppler_array[j:, ] = doppler_dict[tuple(hand_cluster[j, :3])]
-            # append back the doppler
-            hand_cluster = np.append(hand_cluster, doppler_array, 1)
     else:
         hand_cluster = points
 
     hand_cluster = np.array(hand_cluster)
     frame_3D_volume = snapPointsToVolume(hand_cluster, volume_shape, isClipping=isClipping)
 
-    return np.expand_dims(frame_3D_volume,axis=0)
+    return np.expand_dims(frame_3D_volume, axis=0)
+
+xmin, xmax = -0.5, 0.5
+ymin, ymax = 0.0, 0.5
+zmin, zmax = -0.5, 0.5
+
+heatMin, heatMax = -1.0, 1.0
+xyzScaler = MinMaxScaler().fit(np.array([[xmin, ymin, zmin],
+                                         [xmax, ymax, zmax]]))
+heatScaler = MinMaxScaler().fit(np.array([[heatMin],
+                                          [heatMax]]))
+
+def snapPointsToVolume(points, volume_shape, isClipping=False, radius=3, decay=0.8):
+    """
+    make sure volume is a square
+    :param points: n * 4 array
+    :param heat: scale 0 to 1
+    :param volume:
+    """
+    assert len(volume_shape) == 3 and volume_shape[0] == volume_shape[1] == volume_shape[2]
+    volume = np.zeros(volume_shape)
+
+    if len(points) != 0:
+
+        # filter out points that are outside the bounding box
+        # using ABSOLUTE normalization
+
+        points[:, :3] = xyzScaler.transform(points[:, :3])
+        points[:, 3:] = heatScaler.transform(points[:, 3:])
+
+
+        size = volume_shape[0]  # the length of the square side
+        axis = np.array((size - 1) * points[:, :3], dtype=int)  # size minus 1 for index starts at 0
+
+        for i, row in enumerate(points):
+            heat = row[3]
+
+            volume[axis[i][0], axis[i][1], axis[i][2]] = volume[axis[i][0], axis[i][1], axis[i][2]] + heat
+
+            if isClipping:
+                point_to_clip = sphere_search(shape=volume_shape, index=(axis[i][0], axis[i][1], axis[i][2]), r=radius)
+                for dist, ptc in point_to_clip:
+                    if dist != 0.0:
+                        factor = (radius - dist + 1) * decay /radius
+                        volume[ptc[0], ptc[1], ptc[2]] = volume[ptc[0], ptc[1], ptc[2]] + heat * factor
+    return volume
+
 
 # frameArray = np.load('F:/test_frameArray.npy')
 # start = time.time()
