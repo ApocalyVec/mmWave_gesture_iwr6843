@@ -17,8 +17,10 @@ pre_trained_path = 'D:/code/DoubleMU/models/palmPad_model.h5'
 epochs = 5000
 is_use_pre_train = False
 num_classes = 10
+timesteps = 45
+
 if __name__ == '__main__':
-    dataGenParams = {'dim': (45, 1, 25, 25, 25),
+    dataGenParams = {'dim': (timesteps, 1, 25, 25, 25),
                      'batch_size': 8,
                      'n_classes': num_classes,
                      'shuffle': True}
@@ -39,42 +41,42 @@ if __name__ == '__main__':
         classifier = Sequential()
         classifier.add(
             TimeDistributed(
-                Conv3D(filters=32, kernel_size=(3, 3, 3), data_format='channels_first', input_shape=(1, 25, 25, 25)),
-                # kernel_regularizer=l2(0.0005)),
-                input_shape=(45, 1, 25, 25, 25)))
+                Conv3D(filters=16, kernel_size=(3, 3, 3), data_format='channels_first', input_shape=(1, 25, 25, 25),
+                kernel_regularizer=l2(0.0005)), input_shape=(timesteps, 1, 25, 25, 25)))
         classifier.add(TimeDistributed(LeakyReLU(alpha=0.1)))
-        classifier.add(TimeDistributed(Conv3D(filters=32, kernel_size=(3, 3, 3), data_format='channels_first')))
+        classifier.add(TimeDistributed(Conv3D(filters=16, kernel_size=(3, 3, 3), data_format='channels_first')))
         classifier.add(TimeDistributed(LeakyReLU(alpha=0.1)))
         classifier.add(TimeDistributed(BatchNormalization()))
         classifier.add(TimeDistributed(MaxPooling3D(pool_size=(2, 2, 2))))
 
-        classifier.add(TimeDistributed(Conv3D(filters=128, kernel_size=(3, 3, 3), data_format='channels_first')))
-        classifier.add(TimeDistributed(LeakyReLU(alpha=0.1)))
-        classifier.add(TimeDistributed(Conv3D(filters=64, kernel_size=(1, 1, 1), data_format='channels_first')))
-        classifier.add(TimeDistributed(LeakyReLU(alpha=0.1)))
-        classifier.add(TimeDistributed(Conv3D(filters=128, kernel_size=(3, 3, 3), data_format='channels_first')))
-        classifier.add(TimeDistributed(LeakyReLU(alpha=0.1)))
-        classifier.add(TimeDistributed(MaxPooling3D(pool_size=(2, 2, 2))))
+        # classifier.add(TimeDistributed(Conv3D(filters=128, kernel_size=(3, 3, 3), data_format='channels_first')))
+        # classifier.add(TimeDistributed(LeakyReLU(alpha=0.1)))
+        # classifier.add(TimeDistributed(Conv3D(filters=64, kernel_size=(1, 1, 1), data_format='channels_first')))
+        # classifier.add(TimeDistributed(LeakyReLU(alpha=0.1)))
+        # classifier.add(TimeDistributed(Conv3D(filters=128, kernel_size=(3, 3, 3), data_format='channels_first')))
+        # classifier.add(TimeDistributed(LeakyReLU(alpha=0.1)))
+        # classifier.add(TimeDistributed(MaxPooling3D(pool_size=(2, 2, 2))))
 
         classifier.add(TimeDistributed(Flatten()))
 
-        classifier.add(LSTM(units=512, return_sequences=True))
-        # classifier.add(Dropout(rate=0.2))
-        classifier.add(LSTM(units=512, return_sequences=True))
-        classifier.add(LSTM(units=512, return_sequences=False))
+        classifier.add(LSTM(units=128, return_sequences=True))
+        classifier.add(Dropout(rate=0.5))
+        # classifier.add(LSTM(units=512, return_sequences=True))
+        # classifier.add(Dropout(rate=0.5))
+        classifier.add(LSTM(units=128, return_sequences=False))
+        classifier.add(Dropout(rate=0.5))
+
+        # classifier.add(Dense(units=512))
+        # classifier.add(LeakyReLU(alpha=0.1))
         # classifier.add(Dropout(rate=0.2))
 
-        classifier.add(Dense(units=512))
-        classifier.add(LeakyReLU(alpha=0.1))
-        # classifier.add(Dropout(rate=0.2))
-
-        classifier.add(Dense(units=512))
-        classifier.add(LeakyReLU(alpha=0.1))
+        # classifier.add(Dense(units=512))
+        # classifier.add(LeakyReLU(alpha=0.1))
 
         classifier.add(Dense(num_classes, activation='softmax'))
 
-        adam = optimizers.adam(lr=1e-3, decay=1e-2 / epochs)
-        classifier.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
+        adam = optimizers.adam(lr=1e-5, decay=1e-2 / epochs)
+        classifier.compile(optimizer=adam, loss='categorical_crossentropy', metrics=['accuracy'])
     else:
         print('Using Pre-trained Model: ' + pre_trained_path)
         classifier = load_model(pre_trained_path)

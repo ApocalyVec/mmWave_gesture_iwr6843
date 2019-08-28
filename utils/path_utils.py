@@ -98,11 +98,11 @@ def idp_preprocess(paths, is_plot=False, augmentation=(),
     print('2 for E')
     print('3 for H')
     print('4 for L')
-    print('5 for O')
-    print('6 for R')
-    print('7 for W')
-    print('8 for SPC')
-    print('9 for EXC')
+    # print('5 for O')
+    # print('6 for R')
+    # print('7 for W')
+    # print('8 for SPC')
+    # print('9 for EXC')
 
     label_array = []
     this_label = 0
@@ -215,7 +215,7 @@ def idp_preprocess(paths, is_plot=False, augmentation=(),
         if (this_timestamp - starting_timestamp) >= interval_duration or i == len(radar_voxel)-1:
 
             # decide the label
-            inter_arg = 20
+            inter_arg = 10
             if interval_index % inter_arg == 1 or interval_index % inter_arg == 2:
                 this_label = 0  # for label DEL
             elif interval_index % inter_arg == 3 or interval_index % inter_arg == 4:
@@ -224,18 +224,19 @@ def idp_preprocess(paths, is_plot=False, augmentation=(),
                 this_label = 2  # for label E
             elif interval_index % inter_arg == 7 or interval_index % inter_arg == 8:
                 this_label = 3  # for label H
-            elif interval_index % inter_arg == 9 or interval_index % inter_arg == 10:
+            elif interval_index % inter_arg == 9 or interval_index % inter_arg == 0:
                 this_label = 4  # for label L
-            elif interval_index % inter_arg == 11 or interval_index % inter_arg == 12:
-                this_label = 5  # for label O
-            elif interval_index % inter_arg == 13 or interval_index % inter_arg == 14:
-                this_label = 6  # for label R
-            elif interval_index % inter_arg == 15 or interval_index % inter_arg == 16:
-                this_label = 7  # for label W
-            elif interval_index % inter_arg == 17 or interval_index % inter_arg == 18:
-                this_label = 8  # for label SPC
-            elif interval_index % inter_arg == 19 or interval_index % inter_arg == 0:
-                this_label = 9  # for label EXC
+
+            # elif interval_index % inter_arg == 11 or interval_index % inter_arg == 12:
+            #     this_label = 5  # for label O
+            # elif interval_index % inter_arg == 13 or interval_index % inter_arg == 14:
+            #     this_label = 6  # for label R
+            # elif interval_index % inter_arg == 15 or interval_index % inter_arg == 16:
+            #     this_label = 7  # for label W
+            # elif interval_index % inter_arg == 17 or interval_index % inter_arg == 18:
+            #     this_label = 8  # for label SPC
+            # elif interval_index % inter_arg == 19 or interval_index % inter_arg == 0:
+            #     this_label = 9  # for label EXC
             label_array.append(this_label)
 
             print('Interval' + str(interval_index) + ': Label-' + str(this_label) + ' # of Samples- ' + str(len(this_voxel_list)))

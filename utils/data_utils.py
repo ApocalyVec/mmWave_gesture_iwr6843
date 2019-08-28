@@ -158,8 +158,10 @@ def snapPointsToVolume(points, volume_shape, isClipping=False, radius=3, decay=0
         for i, row in enumerate(points):
             heat = row[3]
 
-            volume[axis[i][0], axis[i][1], axis[i][2]] = volume[axis[i][0], axis[i][1], axis[i][2]] + heat
-
+            try:
+                volume[axis[i][0], axis[i][1], axis[i][2]] = volume[axis[i][0], axis[i][1], axis[i][2]] + heat
+            except IndexError:
+                print('Index Out of Bound!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
             if isClipping:
                 point_to_clip = sphere_search(shape=volume_shape, index=(axis[i][0], axis[i][1], axis[i][2]), r=radius)
                 for dist, ptc in point_to_clip:
