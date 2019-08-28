@@ -80,17 +80,16 @@ def snapPointsToVolume(points, volume_shape, isClipping=False, radius=3, decay=0
     return volume
 
 
-def radar_data_grapher_volumned(paths, is_plot=False, isCluster=False, augmentation=(),
-                                seeds=np.random.normal(0, 0.02, 5000), isDataGen=True):
+def radar_data_grapher_volumned(paths, is_plot=False, augmentation=(),
+                                seeds=np.random.normal(0, 0.02, 5000), util_path='E:/temp'):
     # utility directory to save the pyplots
-    radarData_path, videoData_path, mergedImg_path, out_path, identity_string = paths
+    radar_points_data_path, radar_voxel_data_path, videoData_path, mergedImg_path, out_path, identity_string = paths
 
-    radar_3dscatter_path = 'E:/indexPen/figures/utils/radar_3dscatter'
+    radar_points = list(pickle.load(open(radar_points_data_path, 'rb')).items())
+    radar_voxel = list(pickle.load(open(radar_voxel_data_path, 'rb')).items())
 
-    radar_data = list(pickle.load(open(radarData_path, 'rb')).items())
-    radar_data.sort(key=lambda x: x[0])  # sort by timestamp
-    videoData_list = os.listdir(videoData_path)
-    videoData_timestamps = list(map(lambda x: float(x.strip('.jpg')), videoData_list))
+    video_frame_list = os.listdir(videoData_path)
+    video_frame_timestamps = list(map(lambda x: float(x.strip('.jpg')), video_frame_list))
 
     style.use('fivethirtyeight')
     white_color = 'rgb(255, 255, 255)'
@@ -101,16 +100,13 @@ def radar_data_grapher_volumned(paths, is_plot=False, isCluster=False, augmentat
     DBSCAN_minSamples = 3
 
     # input data for the classifier that has the shape n*4*100, n being the number of samples
-    num_padding = 100
-    data_for_classifier = np.zeros((len(radar_data), num_padding, 4))
-    data_for_classifier_flattened = np.zeros(
-        (len(radar_data), 4 * num_padding + 1 + 1 + 1))  # + 1 + 1 for the timestamp as integer ratio
 
     fnt = ImageFont.truetype("arial.ttf", 16)
 
     # Retrieve the first timestamp
-    starting_timestamp = radar_data[0][0]
+    assert [x[0] for x in radar_points] == [x[0] for x in radar_voxel]
 
+    starting_timestamp = radar_points[0][0]
     interval_index = 1
 
     # removed and recreate the merged image folder
@@ -137,31 +133,33 @@ def radar_data_grapher_volumned(paths, is_plot=False, isCluster=False, augmentat
         print('No augmentation applied')
 
     print('Label Cheat-sheet:')
-    print('0 for A')
+    print('0 for DEL')
     print('1 for D')
-    print('2 for L')
-    print('3 for M')
-    print('4 for P')
+    print('2 for E')
+    print('3 for H')
+    print('4 for L')
+    print('5 for O')
+    print('6 for R')
+    print('7 for W')
+    print('8 for SPC')
+    print('9 for EXC')
 
     label_array = []
-
     this_label = 0
 
-    for i, radarFrame in enumerate(radar_data):
+    for i, (this_point_and_ts, this_voxel_and_ts) in enumerate(zip(radar_points, radar_voxel)):
 
-        # retrieve the data
-        timestamp, fData = radarFrame
+        # retrieve the timestamp making sure the data is synced
+        assert this_point_and_ts[0] == this_voxel_and_ts[0]
+        this_timestamp = this_point_and_ts[0]
 
         # calculate the interval
-        if (timestamp - starting_timestamp) >= 5.0:
-            num_intervaled_samples = len(volumes_for_this_interval)
-            if num_intervaled_samples < sample_per_interval / 8:
-                raise Exception('Not Enough Data Points, killed')
+        if (this_timestamp - starting_timestamp) >= 3.0:
 
             # decide the label
-            inter_arg = 20
+            inter_arg = 101
             if interval_index % inter_arg == 1 or interval_index % inter_arg == 2:
-                this_label = 0
+                this_label = 0 # for label DEL
             elif interval_index % inter_arg == 3 or interval_index % inter_arg == 4:
                 this_label = 1  # for label D
             elif interval_index % inter_arg == 5 or interval_index % inter_arg == 6:
@@ -200,7 +198,7 @@ def radar_data_grapher_volumned(paths, is_plot=False, isCluster=False, augmentat
             interval_index = interval_index + 1
         # end of end of interval processing
 
-        print('Processing ' + str(i + 1) + ' of ' + str(len(radar_data)) + ', interval = ' + str(interval_index))
+        print('Processing ' + str(i + 1) + ' of ' + str(len(radar_points)) + ', interval = ' + str(interval_index))
 
         if is_plot:
             mergedImg_path_intervaled = os.path.join(mergedImg_path, str(interval_index - 1))
@@ -208,8 +206,8 @@ def radar_data_grapher_volumned(paths, is_plot=False, isCluster=False, augmentat
             if not os.path.isdir(mergedImg_path_intervaled):
                 os.mkdir(mergedImg_path_intervaled)
 
-            closest_video_timestamp = min(videoData_timestamps,
-                                          key=lambda x: abs(x - timestamp))
+            closest_video_timestamp = min(video_frame_timestamps,
+                                          key=lambda x: abs(x - this_timestamp))
             closest_video_path = os.path.join(videoData_path, str(closest_video_timestamp) + '.jpg')
             closest_video_img = Image.open(closest_video_path)
 
@@ -223,9 +221,9 @@ def radar_data_grapher_volumned(paths, is_plot=False, isCluster=False, augmentat
             ax1.set_zlabel('Z', fontsize=10)
             ax1.set_title('Detected Points', fontsize=10)
             # plot the detected points
-            ax1.scatter(fData['x'], fData['y'], fData['z'], c=fData['doppler'], marker='o')
+            ax1.scatter(this_point_and_ts['x'], this_point_and_ts['y'], this_point_and_ts['z'], c=this_point_and_ts['doppler'], marker='o')
 
-        data = np.asarray([fData['x'], fData['y'], fData['z'], fData['doppler']]).transpose()
+        data = np.asarray([this_point_and_ts['x'], this_point_and_ts['y'], this_point_and_ts['z'], this_point_and_ts['doppler']]).transpose()
         # Do DBSCAN cluster ###########################################
         # map the points to their doppler value, this is for retrieving the doppler value after clustering
         if isCluster:
@@ -348,8 +346,8 @@ def radar_data_grapher_volumned(paths, is_plot=False, isCluster=False, augmentat
         #################################################################
         # Combine the three images
         if is_plot:
-            plt.savefig(os.path.join(radar_3dscatter_path, str(timestamp) + '.jpg'))
-            radar_3dscatter_img = Image.open(os.path.join(radar_3dscatter_path, str(timestamp) + '.jpg'))
+            plt.savefig(os.path.join(util_path, str(this_timestamp) + '.jpg'))
+            radar_3dscatter_img = Image.open(os.path.join(util_path, str(this_timestamp) + '.jpg'))
 
             images = [closest_video_img, radar_3dscatter_img]  # add image here to arrange them horizontally
             widths, heights = zip(*(i.size for i in images))
@@ -361,7 +359,7 @@ def radar_data_grapher_volumned(paths, is_plot=False, isCluster=False, augmentat
                 new_im.paste(im, (x_offset, 0))
                 x_offset += im.size[0]
 
-            timestamp_difference = abs(float(timestamp) - float(closest_video_timestamp))
+            timestamp_difference = abs(float(this_timestamp) - float(closest_video_timestamp))
             draw = ImageDraw.Draw(new_im)
 
             # draw the timestamp difference on the image
@@ -370,7 +368,7 @@ def radar_data_grapher_volumned(paths, is_plot=False, isCluster=False, augmentat
             draw.text((x, y), message, fill=white_color, font=fnt)
             # draw the timestamp
             (x, y) = (20, 30)
-            message = "Timestamp: " + str(timestamp)
+            message = "Timestamp: " + str(this_timestamp)
             draw.text((x, y), message, fill=white_color, font=fnt)
 
             # draw the number of points
@@ -389,8 +387,8 @@ def radar_data_grapher_volumned(paths, is_plot=False, isCluster=False, augmentat
 
             # save the combined image
             new_im.save(
-                os.path.join(mergedImg_path_intervaled, str(timestamp) + '_' + str(timestamp.as_integer_ratio()[0]) +
-                             '_' + str(timestamp.as_integer_ratio()[1]) + '_' + str(interval_index) + '.jpg'))
+                os.path.join(mergedImg_path_intervaled, str(this_timestamp) + '_' + str(this_timestamp.as_integer_ratio()[0]) +
+                             '_' + str(this_timestamp.as_integer_ratio()[1]) + '_' + str(interval_index) + '.jpg'))
             plt.close('all')
 
     # process the last interval ##########################################################################
@@ -476,21 +474,22 @@ def radar_data_grapher_volumned(paths, is_plot=False, isCluster=False, augmentat
     print('Done saving to ' + out_path)
 
 
-def generate_path(subject_name: str, case_index: int, mode='indexPen') -> tuple:
+def generate_path(subject_name: str, case_index: int, mode: str) -> tuple:
 
     identity_string = subject_name + '_' + str(case_index)
-    f_dir = 'f_data_' + identity_string
-    v_dir = 'v_data_' + identity_string
+    f_dir = 'f_data_' + mode + '_' + identity_string
+    v_dir = 'v_data_' + mode + '_' + identity_string
 
-    dataRootPath = 'E:/' + mode + '/data'
-    figureRootPath = 'E:/' + mode + '/figures'
+    root_path = 'E:/alldata'
 
-    radarData_path = os.path.join(dataRootPath, f_dir, 'f_data.p')
-    videoData_path = os.path.join(dataRootPath, v_dir, 'cam2')
-    mergedImg_path = os.path.join(figureRootPath, identity_string)
-    out_path = os.path.join('E:/' + mode + '/csv_augmented', identity_string)
+    radar_point_data_path = os.path.join(root_path, f_dir, 'f_data_points.p')
+    radar_voxel_data_path = os.path.join(root_path, f_dir, 'f_data_voxel.p')
 
-    return radarData_path, videoData_path, mergedImg_path, out_path, identity_string
+    videoData_path = os.path.join(root_path, v_dir, 'cam2')
+    mergedImg_path = os.path.join(root_path, identity_string)
+    out_path = os.path.join('E:/alldataset', mode + '_' + identity_string)
+
+    return radar_point_data_path, radar_voxel_data_path, videoData_path, mergedImg_path, out_path, identity_string
 
 def generate_train_val_ids(test_ratio, dataset_path='D:/indexPen/dataset', sample_num=None):
     data_ids = os.listdir(dataset_path)
