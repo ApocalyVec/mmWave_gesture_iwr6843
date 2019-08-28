@@ -20,6 +20,7 @@ import pandas as pd
 
 from sklearn.preprocessing import MinMaxScaler
 
+from utils.data_utils import produce_voxel
 from utils.transformation import translate, sphere_search, rotateZ, rotateY, rotateX, scale
 
 
@@ -83,7 +84,7 @@ def snapPointsToVolume(points, volume_shape, isClipping=False, radius=3, decay=0
 def radar_data_grapher_volumned(paths, is_plot=False, augmentation=(),
                                 seeds=np.random.normal(0, 0.02, 5000), util_path='E:/temp'):
     # utility directory to save the pyplots
-    radar_points_data_path, radar_voxel_data_path, videoData_path, mergedImg_path, out_path, identity_string = paths
+    radar_points_data_path, radar_voxel_data_path, videoData_path, figure_path, out_path, identity_string = paths
 
     radar_points = list(pickle.load(open(radar_points_data_path, 'rb')).items())
     radar_voxel = list(pickle.load(open(radar_voxel_data_path, 'rb')).items())
@@ -111,18 +112,18 @@ def radar_data_grapher_volumned(paths, is_plot=False, augmentation=(),
 
     # removed and recreate the merged image folder
     if is_plot:
-        if os.path.isdir(mergedImg_path):
-            shutil.rmtree(mergedImg_path)
-        os.mkdir(mergedImg_path)
+        if os.path.isdir(figure_path):
+            shutil.rmtree(figure_path)
+        os.mkdir(figure_path)
 
     volume_shape = (25, 25, 25)
 
     interval_volume_list = []
-    volumes_for_this_interval = []
+    this_voxel_list = []
 
-    interval_sec = 5
-    sample_per_sec = 20
-    sample_per_interval = interval_sec * sample_per_sec
+    interval_duration = 3.0
+    sample_per_sec = 15
+    sample_per_interval = int(interval_duration * sample_per_sec)
 
     aug_string = ''
     if augmentation:
@@ -147,64 +148,21 @@ def radar_data_grapher_volumned(paths, is_plot=False, augmentation=(),
     label_array = []
     this_label = 0
 
-    for i, (this_point_and_ts, this_voxel_and_ts) in enumerate(zip(radar_points, radar_voxel)):
+    for i, (this_points_and_ts, this_voxel_and_ts) in enumerate(zip(radar_points, radar_voxel)):
 
         # retrieve the timestamp making sure the data is synced
-        assert this_point_and_ts[0] == this_voxel_and_ts[0]
-        this_timestamp = this_point_and_ts[0]
-
-        # calculate the interval
-        if (this_timestamp - starting_timestamp) >= 3.0:
-
-            # decide the label
-            inter_arg = 101
-            if interval_index % inter_arg == 1 or interval_index % inter_arg == 2:
-                this_label = 0 # for label DEL
-            elif interval_index % inter_arg == 3 or interval_index % inter_arg == 4:
-                this_label = 1  # for label D
-            elif interval_index % inter_arg == 5 or interval_index % inter_arg == 6:
-                this_label = 2  # for label L
-            elif interval_index % inter_arg == 7 or interval_index % inter_arg == 8:
-                this_label = 3  # for label M
-            elif interval_index % inter_arg == 9 or interval_index % inter_arg == 10:
-                this_label = 4  # for label P
-            elif interval_index % inter_arg == 11 or interval_index % inter_arg == 12:
-                this_label = 5  # for label D
-            elif interval_index % inter_arg == 13 or interval_index % inter_arg == 14:
-                this_label = 6  # for label L
-            elif interval_index % inter_arg == 15 or interval_index % inter_arg == 16:
-                this_label = 7  # for label M
-            elif interval_index % inter_arg == 17 or interval_index % inter_arg == 18:
-                this_label = 8  # for label P
-            elif interval_index % inter_arg == 19 or interval_index % inter_arg == 0:
-                this_label = 9  # for label P
-            label_array.append(this_label)  # for label A
-
-            print('Label for the last interval is ' + str(this_label) + ' Num Samples: ' + str(
-                len(volumes_for_this_interval)))
-            print('')
-
-            # add padding, pre-padded
-            if len(volumes_for_this_interval) < sample_per_interval:
-                while len(volumes_for_this_interval) < sample_per_interval:
-                    volumes_for_this_interval.insert(0, np.expand_dims(np.zeros(volume_shape), axis=0))
-            elif len(volumes_for_this_interval) > sample_per_interval:  # we take only the 75 most recent
-                volumes_for_this_interval = volumes_for_this_interval[-75:]
-            volumes_for_this_interval = np.asarray(volumes_for_this_interval)
-            interval_volume_list.append(volumes_for_this_interval)
-            volumes_for_this_interval = []
-            # increment the timestamp and interval index
-            starting_timestamp = starting_timestamp + 5.0
-            interval_index = interval_index + 1
-        # end of end of interval processing
+        assert this_points_and_ts[0] == this_voxel_and_ts[0]
+        this_timestamp = this_points_and_ts[0]
+        this_points = this_points_and_ts[1]
+        this_voxel = this_voxel_and_ts[1]
 
         print('Processing ' + str(i + 1) + ' of ' + str(len(radar_points)) + ', interval = ' + str(interval_index))
 
         if is_plot:
-            mergedImg_path_intervaled = os.path.join(mergedImg_path, str(interval_index - 1))
+            figure_intervaled_path = os.path.join(figure_path, str(interval_index - 1))
 
-            if not os.path.isdir(mergedImg_path_intervaled):
-                os.mkdir(mergedImg_path_intervaled)
+            if not os.path.isdir(figure_intervaled_path):
+                os.mkdir(figure_intervaled_path)
 
             closest_video_timestamp = min(video_frame_timestamps,
                                           key=lambda x: abs(x - this_timestamp))
@@ -221,129 +179,44 @@ def radar_data_grapher_volumned(paths, is_plot=False, augmentation=(),
             ax1.set_zlabel('Z', fontsize=10)
             ax1.set_title('Detected Points', fontsize=10)
             # plot the detected points
-            ax1.scatter(this_point_and_ts['x'], this_point_and_ts['y'], this_point_and_ts['z'], c=this_point_and_ts['doppler'], marker='o')
+            ax1.scatter(this_points['x'], this_points['y'], this_points['z'], c=this_points['doppler'], marker='o')
 
-        data = np.asarray([this_point_and_ts['x'], this_point_and_ts['y'], this_point_and_ts['z'], this_point_and_ts['doppler']]).transpose()
+        data = np.asarray([this_points['x'], this_points['y'], this_points['z'], this_points['doppler']]).transpose()
         # Do DBSCAN cluster ###########################################
         # map the points to their doppler value, this is for retrieving the doppler value after clustering
-        if isCluster:
-            doppler_dict = {}
-            for point in data:
-                doppler_dict[tuple(point[:3])] = point[3:]
-            # get rid of the doppler for clustering TODO should we consider the doppler in clustering?
-            data = data[:, :3]
 
-            db = DBSCAN(eps=DBSCAN_esp, min_samples=DBSCAN_minSamples).fit(data)
-            core_samples_mask = np.zeros_like(db.labels_, dtype=bool)
-            core_samples_mask[db.core_sample_indices_] = True
-            labels = db.labels_
-            # Number of clusters in labels, ignoring noise if present.
-            n_clusters_ = len(set(labels)) - (1 if -1 in labels else 0)
-            n_noise_ = list(labels).count(-1)
-
-            if is_plot:
-                ax2 = plt.subplot(2, 2, 2, projection='3d')
-                ax2.set_xlim((-0.3, 0.3))
-                ax2.set_ylim((-0.3, 0.3))
-                ax2.set_zlim((-0.3, 0.3))
-                ax2.set_xlabel('X', fontsize=10)
-                ax2.set_ylabel('Y', fontsize=10)
-                ax2.set_zlabel('Z', fontsize=10)
-                ax2.set_title('Clustered Points', fontsize=10)
-
-            unique_labels = set(labels)
-            colors = [plt.cm.Spectral(each)
-                      for each in np.linspace(0, 1, len(unique_labels))]
-
-            clusters = []
-
-            for k, col in zip(unique_labels, colors):
-                if k == -1:
-                    # Black used for noise.
-                    col = [0, 0, 0, 1]
-                class_member_mask = (labels == k)
-                xyz = data[class_member_mask & core_samples_mask]
-                if xyz.any():  # in case there are none objects
-                    clusters.append(xyz)  # append this cluster data to the cluster list
-                # each cluster is a 3 * n matrix
-                xyz = data[class_member_mask & ~core_samples_mask]
-                if is_plot:
-                    ax2.scatter(xyz[:, 0], xyz[:, 1], xyz[:, 2], 'o', c=np.array([col]), s=12,
-                                marker='X')  # plot the noise
-
-            # find the center for each cluster
-            clusters_centers = list(
-                map(lambda xyz: np.array([np.mean(xyz[:, 0]), np.mean(xyz[:, 1]), np.mean(xyz[:, 2])]), clusters))
-            clusters.sort(key=lambda xyz: distance.euclidean((0.0, 0.0, 0.0), np.array(
-                [np.mean(xyz[:, 0]), np.mean(xyz[:, 1]), np.mean(xyz[:, 2])])))
-
-            # plot the clusters
-            for xyz, col in zip(clusters, colors):
-                if is_plot:
-                    ax2.scatter(xyz[:, 0], xyz[:, 1], xyz[:, 2], 'o', c=np.array([col]), s=28,
-                                marker='o')  # plot the cluster points
-
-            #############################
-            # clear the hand cluster
-            hand_cluster = []
-            bbox = (0.2, 0.2, 0.2)
-
-            if len(clusters) > 0:
-                hand_cluster = clusters[0]
-                point_num = hand_cluster.shape[0]
-
-                # if the cluster is outside the 20*20*20 cm bounding box
-                distance_from_center = distance.euclidean((0.0, 0.0, 0.0), np.array(
-                    [np.mean(hand_cluster[:, 0]), np.mean(hand_cluster[:, 1]), np.mean(hand_cluster[:, 2])]))
-
-                if distance_from_center > distance.euclidean((0.0, 0.0, 0.0),
-                                                             bbox):  # if the core of the cluster is too far away from the center
-                    hand_cluster = np.zeros((hand_cluster.shape[0], hand_cluster.shape[1] + 1))
-                else:
-                    doppler_array = np.zeros((point_num, 1))
-                    for j in range(point_num):
-                        doppler_array[j:, ] = doppler_dict[tuple(hand_cluster[j, :3])]
-                    # append back the doppler
-                    hand_cluster = np.append(hand_cluster, doppler_array, 1)
-        else:
-            hand_cluster = data
-
-        hand_cluster = np.array(hand_cluster)
+        assert produce_voxel(this_points) == this_voxel
 
         # apply augmentation to hand cluster #############################
-        if hand_cluster.size != 0:
-            # apply augmentations
-            if 'trans' in augmentation:
-                for p in np.nditer(hand_cluster[:, :3], op_flags=['readwrite']):
-                    p[...] = p + random.choice(seeds)
-            if 'rot' in augmentation:
-                hand_cluster[:, :3] = rotateX(hand_cluster[:, :3], 720 * random.choice(seeds))
-                hand_cluster[:, :3] = rotateY(hand_cluster[:, :3], 720 * random.choice(seeds))
-                hand_cluster[:, :3] = rotateZ(hand_cluster[:, :3], 720 * random.choice(seeds))
-            if 'scale' in augmentation:
-                s = 1 + random.choice(seeds)
-                hand_cluster[:, :3] = scale(hand_cluster[:, :3], x=s, y=s, z=s)
+        if 'trans' in augmentation:
+            for p in np.nditer(this_points[:, :3], op_flags=['readwrite']):
+                p[...] = p + random.choice(seeds)
+        if 'rot' in augmentation:
+            this_points[:, :3] = rotateX(this_points[:, :3], 720 * random.choice(seeds))
+            this_points[:, :3] = rotateY(this_points[:, :3], 720 * random.choice(seeds))
+            this_points[:, :3] = rotateZ(this_points[:, :3], 720 * random.choice(seeds))
+        if 'scale' in augmentation:
+            s = 1 + random.choice(seeds)
+            this_points[:, :3] = scale(this_points[:, :3], x=s, y=s, z=s)
 
-            if is_plot:
-                ax3 = plt.subplot(2, 2, 3, projection='3d')
-                ax3.set_xlim((-0.3, 0.3))
-                ax3.set_ylim((-0.3, 0.3))
-                ax3.set_zlim((-0.3, 0.3))
-                ax3.set_xlabel('X', fontsize=10)
-                ax3.set_ylabel('Y', fontsize=10)
-                ax3.set_zlabel('Z', fontsize=10)
-                ax3.set_title('Hand Cluster', fontsize=10)
+        if is_plot:
+            ax3 = plt.subplot(2, 2, 3, projection='3d')
+            ax3.set_xlim((-0.3, 0.3))
+            ax3.set_ylim((-0.3, 0.3))
+            ax3.set_zlim((-0.3, 0.3))
+            ax3.set_xlabel('X', fontsize=10)
+            ax3.set_ylabel('Y', fontsize=10)
+            ax3.set_zlabel('Z', fontsize=10)
+            ax3.set_title('Hand Cluster', fontsize=10)
 
-                ax3.scatter(hand_cluster[:, 0], hand_cluster[:, 1], hand_cluster[:, 2], 'o', c=hand_cluster[:, 3], s=28,
-                            marker='o')
+            ax3.scatter(this_points[:, 0], this_points[:, 1], this_points[:, 2], 'o', c=this_points[:, 3], s=28,
+                        marker='o')
 
         # create 3D feature space #############################
-        frame_3D_volume = snapPointsToVolume(hand_cluster, volume_shape, isClipping=('clipping' in augmentation))
-        volumes_for_this_interval.append(np.expand_dims(frame_3D_volume, axis=0))
+
+        this_voxel_list.append(np.expand_dims(produce_voxel(this_points), axis=0))
 
         # Plot the hand cluster #########################################
-
-        #################################################################
         # Combine the three images
         if is_plot:
             plt.savefig(os.path.join(util_path, str(this_timestamp) + '.jpg'))
@@ -373,69 +246,58 @@ def radar_data_grapher_volumned(paths, is_plot=False, augmentation=(),
 
             # draw the number of points
             (x, y) = (20, 60)
-            message = "Number of detected points: " + str(xyz.shape[0])
+            message = "Number of detected points: " + str(this_points.shape[0])
             draw.text((x, y), message, fill=white_color, font=fnt)
-
-            # draw the number of clusters and number of noise point on the clutter plot
-            if isCluster:
-                (x, y) = (20, 80)
-                message = "Number of clusters: " + str(n_clusters_)
-                draw.text((x, y), message, fill=white_color, font=fnt)
-                (x, y) = (20, 100)
-                message = "Number of outliers: " + str(n_noise_)
-                draw.text((x, y), message, fill=white_color, font=fnt)
 
             # save the combined image
             new_im.save(
-                os.path.join(mergedImg_path_intervaled, str(this_timestamp) + '_' + str(this_timestamp.as_integer_ratio()[0]) +
+                os.path.join(figure_intervaled_path, str(this_timestamp) + '_' + str(this_timestamp.as_integer_ratio()[0]) +
                              '_' + str(this_timestamp.as_integer_ratio()[1]) + '_' + str(interval_index) + '.jpg'))
             plt.close('all')
 
-    # process the last interval ##########################################################################
-    if len(volumes_for_this_interval) <= 100:
-        num_intervaled_samples = len(volumes_for_this_interval)
-        if num_intervaled_samples < sample_per_interval / 4:
-            print('Not Enough Data Points, saving')
-        else:
+        # calculate the interval ############################
+        if (this_timestamp - starting_timestamp) >= interval_duration or i == len(radar_voxel)-1:
+
             # decide the label
+            inter_arg = 20
             if interval_index % inter_arg == 1 or interval_index % inter_arg == 2:
-                this_label = 0
+                this_label = 0  # for label DEL
             elif interval_index % inter_arg == 3 or interval_index % inter_arg == 4:
                 this_label = 1  # for label D
             elif interval_index % inter_arg == 5 or interval_index % inter_arg == 6:
-                this_label = 2  # for label L
+                this_label = 2  # for label E
             elif interval_index % inter_arg == 7 or interval_index % inter_arg == 8:
-                this_label = 3  # for label M
+                this_label = 3  # for label H
             elif interval_index % inter_arg == 9 or interval_index % inter_arg == 10:
-                this_label = 4  # for label P
+                this_label = 4  # for label L
             elif interval_index % inter_arg == 11 or interval_index % inter_arg == 12:
-                this_label = 5  # for label D
+                this_label = 5  # for label O
             elif interval_index % inter_arg == 13 or interval_index % inter_arg == 14:
-                this_label = 6  # for label L
+                this_label = 6  # for label R
             elif interval_index % inter_arg == 15 or interval_index % inter_arg == 16:
-                this_label = 7  # for label M
+                this_label = 7  # for label W
             elif interval_index % inter_arg == 17 or interval_index % inter_arg == 18:
-                this_label = 8  # for label P
+                this_label = 8  # for label SPC
             elif interval_index % inter_arg == 19 or interval_index % inter_arg == 0:
-                this_label = 9  # for label P
-            label_array.append(this_label)  # for label A
+                this_label = 9  # for label EXC
+            label_array.append(this_label)
 
-            print('Label for the last interval is ' + str(this_label) + ' Num Samples: ' + str(
-                len(volumes_for_this_interval)))
+            print('Interval' + str(interval_index) + ': Label-' + str(this_label) + ' # of Samples- ' + str(len(this_voxel_list)))
             print('')
 
             # add padding, pre-padded
-            if len(volumes_for_this_interval) < sample_per_interval:
-                while len(volumes_for_this_interval) < sample_per_interval:
-                    volumes_for_this_interval.insert(0, np.expand_dims(np.zeros(volume_shape), axis=0))
-            elif len(volumes_for_this_interval) > sample_per_interval:  # we take only the 75 most recent
-                volumes_for_this_interval = volumes_for_this_interval[-75:]
-            volumes_for_this_interval = np.asarray(volumes_for_this_interval)
-            interval_volume_list.append(volumes_for_this_interval)
-            volumes_for_this_interval = []
+            if len(this_voxel_list) < sample_per_interval:
+                while len(this_voxel_list) < sample_per_interval:
+                    this_voxel_list.insert(0, np.expand_dims(np.zeros(volume_shape), axis=0))
+            elif len(this_voxel_list) > sample_per_interval:  # we take only the 75 most recent
+                this_voxel_list = this_voxel_list[-75:]
+            this_voxel_list = np.asarray(this_voxel_list)
+            interval_volume_list.append(this_voxel_list)
+            this_voxel_list = []
             # increment the timestamp and interval index
-            starting_timestamp = starting_timestamp + 5.0
+            starting_timestamp = starting_timestamp + interval_duration
             interval_index = interval_index + 1
+        # end of end of interval processing
 
     # start of post processing ##########################################################################
     label_array = np.asarray(label_array)
@@ -446,30 +308,26 @@ def radar_data_grapher_volumned(paths, is_plot=False, augmentation=(),
     assert len(label_array) == 60
 
     print('Saving csv and npy to ' + out_path + '...')
-    if isDataGen:
-        dataset_path = 'E:/indexPen/dataset'
-        label_dict_path = 'E:/indexPen/labels/label_dict.p'
-        # load label dict
-        if os.path.exists(label_dict_path):
-            label_dict = pickle.load(open(label_dict_path, 'rb'))
-        else:  # create anew if does not exist
-            label_dict = {}
+    
+    dataset_path = 'E:/indexPen/dataset'
+    label_dict_path = 'E:/indexPen/labels/label_dict.p'
+    # load label dict
+    if os.path.exists(label_dict_path):
+        label_dict = pickle.load(open(label_dict_path, 'rb'))
+    else:  # create anew if does not exist
+        label_dict = {}
 
-        # put the label into the dict
-        for l_index, l in enumerate(label_array):
-            label_dict[identity_string + str(l_index) + aug_string] = l
-        # save label dict to disk
-        pickle.dump(label_dict, open(label_dict_path, 'wb'))
+    # put the label into the dict
+    for l_index, l in enumerate(label_array):
+        label_dict[identity_string + str(l_index) + aug_string] = l
+    # save label dict to disk
+    pickle.dump(label_dict, open(label_dict_path, 'wb'))
 
-        # save the data chunks (intervaled volumns)
-        for d_index, d in enumerate(interval_volume_array):
-            print('Saving chunk #' + str(d_index))
-            np.save(os.path.join(dataset_path, identity_string + str(d_index) + aug_string), d)
+    # save the data chunks (intervaled volumns)
+    for d_index, d in enumerate(interval_volume_array):
+        print('Saving chunk #' + str(d_index))
+        np.save(os.path.join(dataset_path, identity_string + str(d_index) + aug_string), d)
 
-    else:
-        np.save(os.path.join(out_path, 'label_array'), label_array)
-        np.save(os.path.join(out_path, 'intervaled_3D_volumes_' + str(volume_shape[0]) + 'x' + aug_string),
-                interval_volume_array)
 
     print('Done saving to ' + out_path)
 
