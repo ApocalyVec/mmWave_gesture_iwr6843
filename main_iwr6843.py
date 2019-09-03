@@ -61,6 +61,18 @@ is_simulate = False
 is_predict = False
 
 
+class InputThread(Thread):
+    def __init__(self, thread_id):
+        Thread.__init__(self)
+        self.thread_id = thread_id
+
+    def run(self):
+        global is_collecting_started
+
+        input()
+        is_collecting_started = True
+
+
 class PredictionThread(Thread):
     def __init__(self, thread_id, model_encoder_dict, timestep, thumouse_gui=None, mode=None):
 
@@ -162,7 +174,7 @@ def main():
     global is_predict
     global main_stop_flag
 
-    configFileName = 'profiles/profile_tuned.cfg'
+    configFileName = 'profiles/profile_further_tuned.cfg'
     dataPortName = 'COM9'
     userPortName = 'COM8'
 
@@ -190,8 +202,15 @@ def main():
                                        timestep=timestep, thumouse_gui=thumouse_graph, mode=my_mode)
         pred_thread.start()
 
-    input('Press Enter to Start...')
+    # start input thread
+    # input_thread = InputThread(1)
+    # input_thread.start()
+
     serial_iwr6843.sensor_start(user_port)
+    time.sleep(2)
+
+    input('Press Enter to Start...')
+    serial_iwr6843.clear_serial_buffer(user_port, data_port)
     print('Started! Press CTRL+C to interrupt...')
 
     while True:
@@ -208,7 +227,10 @@ def main():
                     data_q.append(processed_data)
 
                 xy_graph.setData(detected_points[:, 0], detected_points[:, 1])
+                # zd_graph.setData(detected_points[:, 2], detected_points[:, 3])
+
                 zd_graph.setData(detected_points[:, 2], detected_points[:, 3])
+
             else:
                 pass
                 # print('Packet is not complete yet!')
@@ -229,7 +251,7 @@ def main():
     # print the information about the frames collected
     print('The number of frame collected is ' + str(len(data_list)))
     time_record = max(x[0] for x in data_list) - min(x[0] for x in data_list)
-    expected_frame_num = time_record * 15
+    expected_frame_num = time_record * 20
     frame_drop_rate = len(data_list) / expected_frame_num
     print('Recording time is ' + str(time_record))
     print('The expected frame num is ' + str(expected_frame_num))

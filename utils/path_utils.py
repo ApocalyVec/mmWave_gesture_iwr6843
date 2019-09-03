@@ -39,6 +39,12 @@ heatScaler = MinMaxScaler().fit(np.array([[heatMin],
 
 # volumn.shape = (5, 5, 5)
 
+def midpoints(x):
+    sl = ()
+    for i in range(x.ndim):
+        x = (x[sl + np.index_exp[:-1]] + x[sl + np.index_exp[1:]]) / 2.0
+        sl += np.index_exp[:]
+    return x
 
 def idp_preprocess(paths, is_plot=False, augmentation=(),
                    seeds=np.random.normal(0, 0.02, 5000), util_path='E:/temp'):
@@ -67,7 +73,7 @@ def idp_preprocess(paths, is_plot=False, augmentation=(),
     assert [x[0] for x in radar_points] == [x[0] for x in radar_voxel]
 
     starting_timestamp = radar_points[0][0]
-    interval_index = 1
+    interval_index = 0
 
     # removed and recreate the merged image folder
     if is_plot:
@@ -80,8 +86,8 @@ def idp_preprocess(paths, is_plot=False, augmentation=(),
     interval_voxel_list = []
     this_voxel_list = []
 
-    interval_duration = 3.0
-    sample_per_sec = 15
+    interval_duration = 4.0
+    sample_per_sec = 20
     sample_per_interval = int(interval_duration * sample_per_sec)
 
     aug_string = ''
@@ -94,10 +100,10 @@ def idp_preprocess(paths, is_plot=False, augmentation=(),
 
     print('Label Cheat-sheet:')
     print('0 for DEL')
-    print('1 for D')
-    print('2 for E')
-    print('3 for H')
-    print('4 for L')
+    print('1 for E')
+    print('2 for H')
+    print('3 for L')
+    print('4 for O')
     # print('5 for O')
     # print('6 for R')
     # print('7 for W')
@@ -114,7 +120,6 @@ def idp_preprocess(paths, is_plot=False, augmentation=(),
         this_timestamp = this_points_and_ts[0]
         this_points = this_points_and_ts[1]
         this_voxel = this_voxel_and_ts[1]
-
         print('Processing ' + str(i + 1) + ' of ' + str(len(radar_points)) + ', interval = ' + str(interval_index))
 
         if is_plot:
@@ -169,12 +174,24 @@ def idp_preprocess(paths, is_plot=False, augmentation=(),
                         marker='o')
 
         # create 3D feature space #############################
+        if 'clp' in augmentation:
+            produced_voxel = produce_voxel(this_points, isClipping=True)
+        else:
+            produced_voxel = produce_voxel(this_points, isClipping=False)
 
-        this_voxel_list.append(produce_voxel(this_points))
-
+        this_voxel_list.append(produced_voxel)
         # Plot the hand cluster #########################################
         # Combine the three images
         if is_plot:
+            # plot the voxel
+            ax4 = plt.subplot(2, 2, 4, projection='3d')
+            ax4.set_aspect('equal')
+            ax4.set_xlabel('X', fontsize=10)
+            ax4.set_ylabel('Y', fontsize=10)
+            ax4.set_zlabel('Z', fontsize=10)
+            ax4.set_title('voxel', fontsize=10)
+            ax4.voxels(produced_voxel[0])
+
             plt.savefig(os.path.join(util_path, str(this_timestamp) + '.jpg'))
             radar_3dscatter_img = Image.open(os.path.join(util_path, str(this_timestamp) + '.jpg'))
 
@@ -213,18 +230,24 @@ def idp_preprocess(paths, is_plot=False, augmentation=(),
 
         # calculate the interval ############################
         if (this_timestamp - starting_timestamp) >= interval_duration or i == len(radar_voxel)-1:
+            # increment the timestamp and interval index
+            starting_timestamp = starting_timestamp + interval_duration
+            interval_index = interval_index + 1
 
             # decide the label
             inter_arg = 10
             if interval_index % inter_arg == 1 or interval_index % inter_arg == 2:
+                # continue
                 this_label = 0  # for label DEL
             elif interval_index % inter_arg == 3 or interval_index % inter_arg == 4:
                 this_label = 1  # for label D
             elif interval_index % inter_arg == 5 or interval_index % inter_arg == 6:
                 this_label = 2  # for label E
             elif interval_index % inter_arg == 7 or interval_index % inter_arg == 8:
+                # continue
                 this_label = 3  # for label H
             elif interval_index % inter_arg == 9 or interval_index % inter_arg == 0:
+                # continue
                 this_label = 4  # for label L
 
             # elif interval_index % inter_arg == 11 or interval_index % inter_arg == 12:
@@ -251,14 +274,17 @@ def idp_preprocess(paths, is_plot=False, augmentation=(),
             this_voxel_list = np.asarray(this_voxel_list)
             interval_voxel_list.append(this_voxel_list)
             this_voxel_list = []
-            # increment the timestamp and interval index
-            starting_timestamp = starting_timestamp + interval_duration
-            interval_index = interval_index + 1
+
         # end of end of interval processing
 
     # start of post processing ##########################################################################
-    label_array = np.asarray(label_array)[:60]
-    interval_volume_array = np.asarray(interval_voxel_list)[:60]
+    label_array = np.asarray(label_array)[:30]
+    interval_volume_array = np.asarray(interval_voxel_list)[:30]
+
+    assert len(interval_volume_array) == len(label_array) == 30
+
+    interval_mean = np.mean(interval_volume_array)
+    print('Interval mean is ' + str(interval_mean))
 
     # validate the output shapes
 
@@ -273,18 +299,18 @@ def idp_preprocess(paths, is_plot=False, augmentation=(),
     else:  # create anew if does not exist
         label_dict = {}
 
-    # put the label into the dict
-    for l_index, l in enumerate(label_array):
-        label_dict[identity_string + str(l_index) + aug_string] = l
+    # put the label into the dict and save data
+    for i, l_and_d in enumerate(zip(label_array, interval_volume_array)):
+        print('Saving chunk #' + str(i))
+
+        label_dict[identity_string + '_' + str(i) + aug_string] = l_and_d[0]
+        np.save(os.path.join(dataset_path, identity_string + '_' + str(i) + aug_string), l_and_d[1])
+
     # save label dict to disk
     pickle.dump(label_dict, open(label_dict_path, 'wb'))
 
-    # save the data chunks (intervaled volumns)
-    for d_index, d in enumerate(interval_volume_array):
-        print('Saving chunk #' + str(d_index))
-        np.save(os.path.join(dataset_path, identity_string + str(d_index) + aug_string), d)
-
-    print('Done saving to ' + out_path)
+    print('Current number of labels is ' + str(len(label_dict)))
+    print('Done saving to ' + dataset_path)
 
 
 def generate_path(subject_name: str, case_index: int, mode: str) -> tuple:
@@ -304,17 +330,14 @@ def generate_path(subject_name: str, case_index: int, mode: str) -> tuple:
 
     return radar_point_data_path, radar_voxel_data_path, videoData_path, mergedImg_path, out_path, identity_string
 
-def generate_train_val_ids(test_ratio, dataset_path='D:/indexPen/dataset', sample_num=None):
+def generate_train_val_ids(test_ratio, dataset_path):
     data_ids = os.listdir(dataset_path)
 
     data_ids = list(map(lambda x: os.path.splitext(x)[0], data_ids))
 
     # use pre-set random for reproducibility
-    random.seed(12)
+    random.seed(3)
     random.shuffle(data_ids)
-
-    if sample_num is not None:
-        data_ids = data_ids[:sample_num]
 
     num_data = len(data_ids)
     line = int((1-test_ratio) * num_data)

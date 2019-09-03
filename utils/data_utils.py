@@ -123,11 +123,11 @@ def produce_voxel(points, isCluster=True, isClipping=False):
 
     return np.expand_dims(frame_3D_volume, axis=0)
 
-xmin, xmax = -0.5, 0.5
-ymin, ymax = 0.0, 0.5
-zmin, zmax = -0.5, 0.5
+xmin, xmax = -0.255, 0.255
+ymin, ymax = 0.0, 0.255
+zmin, zmax = -0.255, 0.255
 
-heatMin, heatMax = -1.0, 1.0
+heatMin, heatMax = -3.0, 3.0
 xyzScaler = MinMaxScaler().fit(np.array([[xmin, ymin, zmin],
                                          [xmax, ymax, zmax]]))
 heatScaler = MinMaxScaler().fit(np.array([[heatMin],
@@ -151,7 +151,6 @@ def snapPointsToVolume(points, volume_shape, isClipping=False, radius=3, decay=0
         points[:, :3] = xyzScaler.transform(points[:, :3])
         points[:, 3:] = heatScaler.transform(points[:, 3:])
 
-
         size = volume_shape[0]  # the length of the square side
         axis = np.array((size - 1) * points[:, :3], dtype=int)  # size minus 1 for index starts at 0
 
@@ -168,6 +167,12 @@ def snapPointsToVolume(points, volume_shape, isClipping=False, radius=3, decay=0
                     if dist != 0.0:
                         factor = (radius - dist + 1) * decay /radius
                         volume[ptc[0], ptc[1], ptc[2]] = volume[ptc[0], ptc[1], ptc[2]] + heat * factor
+
+    volume_mean = np.mean(volume)
+    print('Vol mean is ' + str(volume_mean))
+    assert volume_mean < 0.1
+    assert volume_mean > -0.1
+
     return volume
 
 
