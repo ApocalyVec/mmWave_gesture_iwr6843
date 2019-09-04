@@ -51,10 +51,9 @@ if __name__ == '__main__':
         classifier.add(
             TimeDistributed(
                 Conv3D(filters=16, kernel_size=(3, 3, 3), data_format='channels_first', input_shape=(1, 25, 25, 25),
-                       kernel_regularizer=l2(0.0005), kernel_initializer='random_uniform', activation='relu'), input_shape=(timesteps, 1, 25, 25, 25)))
+                       kernel_regularizer=l2(0.0005), kernel_initializer='random_uniform'), input_shape=(timesteps, 1, 25, 25, 25)))
         # classifier.add(TimeDistributed(LeakyReLU(alpha=0.1)))
         classifier.add(TimeDistributed(BatchNormalization()))
-
         classifier.add(TimeDistributed(Conv3D(filters=16, kernel_size=(3, 3, 3), data_format='channels_first', kernel_regularizer=l2(0.0005))))
         # classifier.add(TimeDistributed(LeakyReLU(alpha=0.1)))
         classifier.add(TimeDistributed(BatchNormalization()))
@@ -83,19 +82,20 @@ if __name__ == '__main__':
 
         # classifier.add(Dense(units=512))
         # classifier.add(LeakyReLU(alpha=0.1))
+        classifier.add(Dense(units=128, activation='sigmoid'))
 
         classifier.add(Dense(num_classes, activation='softmax', kernel_initializer='random_uniform'))
 
         # adam = optimizers.adam(lr=1e-6, decay=1e-2 / epochs)
         sgd = optimizers.SGD(lr=5e-5, momentum=0.9, decay=1e-2 / epochs, nesterov=True, clipvalue=0.5)
 
-        classifier.compile(optimizer='sgd', loss='categorical_crossentropy', metrics=['accuracy'])
+        classifier.compile(optimizer=sgd, loss='categorical_crossentropy', metrics=['accuracy'])
     else:
         print('Using Pre-trained Model: ' + pre_trained_path)
         classifier = load_model(pre_trained_path)
 
     # add early stopping
-    es = EarlyStopping(monitor='val_loss', mode='min', verbose=1, patience=50)
+    es = EarlyStopping(monitor='val_loss', mode='min', verbose=1, patience=175)
     mc = ModelCheckpoint(
         'D:/trained_models/bestSoFar_indexPen_CRNN' + str(datetime.datetime.now()).replace(':', '-').replace(' ',
                                                                                                              '_') + '.h5',

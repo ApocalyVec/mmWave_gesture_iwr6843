@@ -79,8 +79,14 @@ def produce_voxel(points, isCluster=True, isClipping=False):
     :param frame: np array with input shape (n, 4)
     :return voxel
     """
+
     if len(points) == 0:  # if there's no detected points
         return np.zeros(tuple([1] + volume_shape))
+
+    points_new = np.asarray([x for x in points if 1.0 > x[3] > -1.0])
+    if not np.all(points_new == points):
+        print('Warning: point VELOCITY out of bound')
+    points = points_new
 
     if isCluster:
         # take off the doppler for clustering
@@ -127,7 +133,7 @@ xmin, xmax = -0.255, 0.255
 ymin, ymax = 0.0, 0.255
 zmin, zmax = -0.255, 0.255
 
-heatMin, heatMax = -3.0, 3.0
+heatMin, heatMax = -1.0, 1.0
 xyzScaler = MinMaxScaler().fit(np.array([[xmin, ymin, zmin],
                                          [xmax, ymax, zmax]]))
 heatScaler = MinMaxScaler().fit(np.array([[heatMin],
@@ -169,7 +175,6 @@ def snapPointsToVolume(points, volume_shape, isClipping=False, radius=3, decay=0
                         volume[ptc[0], ptc[1], ptc[2]] = volume[ptc[0], ptc[1], ptc[2]] + heat * factor
 
     volume_mean = np.mean(volume)
-    print('Vol mean is ' + str(volume_mean))
     assert volume_mean < 0.1
     assert volume_mean > -0.1
 
@@ -181,3 +186,16 @@ def snapPointsToVolume(points, volume_shape, isClipping=False, radius=3, decay=0
 # result = preprocess_frame(frameArray[2])
 # end = time.time()
 # print('Preprocessing frame took ' + str(end-start))
+
+class StreamingMovingAverage:
+    def __init__(self, window_size):
+        self.window_size = window_size
+        self.values = []
+        self.sum = 0
+
+    def process(self, value):
+        self.values.append(value)
+        self.sum += value
+        if len(self.values) > self.window_size:
+            self.sum -= self.values.pop(0)
+        return float(self.sum) / len(self.values)

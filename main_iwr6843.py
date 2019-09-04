@@ -11,12 +11,12 @@ import os
 import pickle
 
 # data queue global
-from utils.data_utils import produce_voxel
+from utils.data_utils import produce_voxel, StreamingMovingAverage
 import numpy as np
+import pyautogui
 
-from utils.model_wrapper import NeuralNetwork, onehot_decoder
 
-data_q = collections.deque(maxlen=100)
+data_q = collections.deque(maxlen=5)
 data_list = []
 processed_data_list = []
 data_shape = (1, 25, 25, 25)
@@ -58,7 +58,10 @@ root_dn = 'data/f_data-' + str(today).replace(':', '-').replace(' ', '_')
 
 # Model Globals
 is_simulate = False
-is_predict = False
+is_predict = True
+
+if is_predict:
+    from utils.model_wrapper import NeuralNetwork, onehot_decoder
 
 
 class InputThread(Thread):
@@ -92,14 +95,21 @@ class PredictionThread(Thread):
         global main_stop_flag
         global thm_gui_size
         global data_shape
+        global is_point
 
         # general vars
         buffer_size = self.timestep
         sequence_buffer = np.zeros(tuple([buffer_size] + list(data_shape)))
 
         # thumouse related vars
-        mouse_x = 0
-        mouse_y = 0
+        mouse_x = 0.0
+        mouse_y = 0.0
+        x_factor = 10.0
+        y_factor = 25.0
+
+        ma_x = StreamingMovingAverage(window_size=5)
+        ma_y = StreamingMovingAverage(window_size=5)
+
         if 'thm' in self.mode:
             thm_model = self.model_encoder_dict['thm'][0]
             thm_decoder = self.model_encoder_dict['thm'][1]
@@ -123,37 +133,43 @@ class PredictionThread(Thread):
                 sequence_buffer = np.concatenate((sequence_buffer[1:], np.expand_dims(data_q.pop(), axis=0)))
 
                 if 'idp' in self.mode:
-                    time.sleep(0.5)
-                    idp_pre_result = idp_model.predict(x=sequence_buffer)
-                    pre_argmax = np.argmax(idp_pre_result)
-                    pre_amax = np.amax(idp_pre_result)
-
-                    if pre_amax > idp_threshold:  # a character is written
-                        if pre_argmax == 5:
-                            print('No One is Writing' + '    amax = ' + str(pre_amax))
-                        else:
-                            print('You just wrote: ' + idp_pred_dict[int(pre_argmax)] + '    amax = ' + str(pre_amax))
-                            # clear the buffer
-                            sequence_buffer = np.zeros(tuple([buffer_size] + list(data_shape)))
-                    else:
-                        print('No writing, amax = ' + str(pre_amax))
+                    pass
+                    # time.sleep(0.5)
+                    # idp_pre_result = idp_model.predict(x=sequence_buffer)
+                    # pre_argmax = np.argmax(idp_pre_result)
+                    # pre_amax = np.amax(idp_pre_result)
+                    #
+                    # if pre_amax > idp_threshold:  # a character is written
+                    #     if pre_argmax == 5:
+                    #         print('No One is Writing' + '    amax = ' + str(pre_amax))
+                    #     else:
+                    #         print('You just wrote: ' + idp_pred_dict[int(pre_argmax)] + '    amax = ' + str(pre_amax))
+                    #         # clear the buffer
+                    #         sequence_buffer = np.zeros(tuple([buffer_size] + list(data_shape)))
+                    # else:
+                    #     print('No writing, amax = ' + str(pre_amax))
 
                 if 'thm' in self.mode:
+                    # if not np.any(sequence_buffer[-1]):
                     thm_pred_result = thm_model.predict(x=np.expand_dims(sequence_buffer[-1], axis=0))
                     # expand dim for single sample batch
                     decoded_result = thm_decoder.inverse_transform(thm_pred_result)
 
-                    delta_x = decoded_result[0][0]
-                    delta_y = decoded_result[0][1]
+                    delta_x = decoded_result[0][0] * x_factor
+                    delta_y = decoded_result[0][1] * y_factor
 
-                    mouse_x = min(max(mouse_x + delta_x, 0), gui_wid_hei[0])
-                    mouse_y = min(max(mouse_y + delta_y, 0), gui_wid_hei[1])
+                    delta_x_ma = ma_x.process(delta_x)
+                    delta_y_ma = ma_y.process(delta_y)
 
-                    if self.thumouse_gui is not None:
-                        self.thumouse_gui.setData([mouse_x], [mouse_y])
+                    # mouse_x = min(max(mouse_x + delta_x, 0), gui_wid_hei[0])
+                    # mouse_y = min(max(mouse_y + delta_y, 0), gui_wid_hei[1])
 
-                    print(str(delta_x) + ' ' + str(delta_y))
-                # print(str([decoded_result[0][0]]) + str([decoded_result[0][1]]))
+                    # move the actual mouse
+                    pyautogui.moveRel(delta_x_ma, delta_y_ma, duration=.1)
+                    # if self.thumouse_gui is not None:
+                        # self.thumouse_gui.setData([mouse_x], [mouse_y])
+
+                    print(str(delta_x_ma) + ' ' + str(delta_y_ma) + '     ' + str(len(data_q)))
 
 
 def load_model(model_path, encoder=None):
@@ -173,6 +189,29 @@ def main():
     global thumouse_graph
     global is_predict
     global main_stop_flag
+    global is_point
+
+    if is_predict:
+        timestep = 100
+        # my_mode = ['thm', 'idp']
+        my_mode = ['thm']
+
+        thm_model_path = 'D:/PycharmProjects/mmWave_gesture_iwr6843/models/thm_model.h5'
+        thm_scaler_path = 'D:/PycharmProjects/mmWave_gesture_iwr6843/models/scalers/thm_scaler.p'
+        # idp_model_path = 'D:/code/DoubleMU/models/palmPad_model.h5'
+
+        model_dict = {'thm': load_model(thm_model_path,
+                                        encoder=thm_scaler_path),
+                      # 'idp': load_model(idp_model_path,
+                      #                   encoder=onehot_decoder())
+                      }
+        pred_thread = PredictionThread(1, model_encoder_dict=model_dict,
+                                       timestep=timestep, thumouse_gui=thumouse_graph, mode=my_mode)
+        pred_thread.start()
+
+    # start input thread
+    # input_thread = InputThread(1)
+    # input_thread.start()
 
     configFileName = 'profiles/profile_further_tuned.cfg'
     dataPortName = 'COM9'
@@ -184,27 +223,6 @@ def main():
     serial_iwr6843.clear_serial_buffer(user_port, data_port)
     # give some time for the board to boot
     time.sleep(2)
-
-    if is_predict:
-        timestep = 100
-        # my_mode = ['thm', 'idp']
-        my_mode = ['thm']
-
-        thm_model_path = 'D:/code/DoubleMU/models/thuMouse_model.h5'
-        thm_scaler_path = 'D:/code/DoubleMU/models/scalers/thm_scaler.p'
-        idp_model_path = 'D:/code/DoubleMU/models/palmPad_model.h5'
-
-        model_dict = {'thm': load_model(thm_model_path,
-                                        encoder=thm_scaler_path),
-                      'idp': load_model(idp_model_path,
-                                        encoder=onehot_decoder())}
-        pred_thread = PredictionThread(1, model_encoder_dict=model_dict,
-                                       timestep=timestep, thumouse_gui=thumouse_graph, mode=my_mode)
-        pred_thread.start()
-
-    # start input thread
-    # input_thread = InputThread(1)
-    # input_thread.start()
 
     serial_iwr6843.sensor_start(user_port)
     time.sleep(2)
@@ -223,7 +241,7 @@ def main():
                 data_list.append((frame_timestamp, detected_points))
                 processed_data_list.append((frame_timestamp, processed_data))
 
-                if is_predict:
+                if is_predict and len(detected_points) != 0:
                     data_q.append(processed_data)
 
                 xy_graph.setData(detected_points[:, 0], detected_points[:, 1])

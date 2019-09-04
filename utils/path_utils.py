@@ -174,10 +174,8 @@ def idp_preprocess(paths, is_plot=False, augmentation=(),
                         marker='o')
 
         # create 3D feature space #############################
-        if 'clp' in augmentation:
-            produced_voxel = produce_voxel(this_points, isClipping=True)
-        else:
-            produced_voxel = produce_voxel(this_points, isClipping=False)
+        produced_voxel = produce_voxel(this_points, isClipping='clp' in augmentation)
+
 
         this_voxel_list.append(produced_voxel)
         # Plot the hand cluster #########################################
@@ -285,6 +283,7 @@ def idp_preprocess(paths, is_plot=False, augmentation=(),
 
     interval_mean = np.mean(interval_volume_array)
     print('Interval mean is ' + str(interval_mean))
+    assert interval_mean < 1.0
 
     # validate the output shapes
 
@@ -353,3 +352,171 @@ def generate_train_val_ids(test_ratio, dataset_path):
         data_dict['validation'].append((test_sample))
 
     return data_dict
+
+
+def thm_preprocess(paths, is_plot=False, augmentation=(),
+                   seeds=np.random.normal(0, 0.02, 5000), util_path='E:/temp'):
+    # utility directory to save the pyplots
+    radar_points_data_path, radar_voxel_data_path, videoData_path, figure_path, out_path, identity_string = paths
+
+    radar_points = pickle.load(open(radar_points_data_path, 'rb'))
+    radar_voxel = pickle.load(open(radar_voxel_data_path, 'rb'))
+
+    video_frame_list = os.listdir(videoData_path)
+    video_frame_timestamps = list(map(lambda x: float(x.strip('.jpg')), video_frame_list))
+
+    dataset_path = 'E:/alldataset/thm_dataset'
+
+    style.use('fivethirtyeight')
+    white_color = 'rgb(255, 255, 255)'
+
+    # input data for the classifier that has the shape n*4*100, n being the number of samples
+    fnt = ImageFont.truetype("arial.ttf", 16)
+
+    # Retrieve the first timestamp
+    assert [x[0] for x in radar_points] == [x[0] for x in radar_voxel]
+
+    starting_timestamp = radar_points[0][0]
+    interval_index = 0
+
+    # removed and recreate the merged image folder
+    if is_plot:
+        if os.path.isdir(figure_path):
+            shutil.rmtree(figure_path)
+        os.mkdir(figure_path)
+
+    volume_shape = (25, 25, 25)
+
+    this_voxel_list = []
+
+    aug_string = ''
+    if augmentation:
+        print('Use augmentation: ' + str(augmentation))
+        for aug in augmentation:
+            aug_string += '_' + aug
+    else:
+        print('No augmentation applied')
+
+    for i, (this_points_and_ts, this_voxel_and_ts) in enumerate(zip(radar_points, radar_voxel)):
+        # retrieve the timestamp making sure the data is synced
+        assert this_points_and_ts[0] == this_voxel_and_ts[0]
+        this_timestamp = this_points_and_ts[0]
+        this_points = this_points_and_ts[1]
+        this_voxel = this_voxel_and_ts[1]
+        print('Processing ' + str(i + 1) + ' of ' + str(len(radar_points)) + ', interval = ' + str(interval_index))
+
+        if is_plot:
+            figure_intervaled_path = os.path.join(figure_path, str(interval_index - 1))
+
+            if not os.path.isdir(figure_intervaled_path):
+                os.mkdir(figure_intervaled_path)
+
+            closest_video_timestamp = min(video_frame_timestamps,
+                                          key=lambda x: abs(x - this_timestamp))
+            closest_video_path = os.path.join(videoData_path, str(closest_video_timestamp) + '.jpg')
+            closest_video_img = Image.open(closest_video_path)
+
+            # plot the radar scatter
+            ax1 = plt.subplot(2, 2, 1, projection='3d')
+            ax1.set_xlim((-0.3, 0.3))
+            ax1.set_ylim((-0.3, 0.3))
+            ax1.set_zlim((-0.3, 0.3))
+            ax1.set_xlabel('X', fontsize=10)
+            ax1.set_ylabel('Y', fontsize=10)
+            ax1.set_zlabel('Z', fontsize=10)
+            ax1.set_title('Detected Points', fontsize=10)
+            # plot the detected points
+            ax1.scatter(this_points[:, 0], this_points[:, 1], this_points[:, 2], c=this_points[:, 3], marker='o')
+
+        # assert np.all(produce_voxel(this_points) == this_voxel)
+
+        # apply augmentation to hand cluster #############################
+        if len(this_points) > 0:
+            if 'trans' in augmentation:
+                for p in np.nditer(this_points[:, :3], op_flags=['readwrite']):
+                    p[...] = p + random.choice(seeds)
+            if 'rot' in augmentation:
+                this_points[:, :3] = rotateX(this_points[:, :3], 720 * random.choice(seeds))
+                this_points[:, :3] = rotateY(this_points[:, :3], 720 * random.choice(seeds))
+                this_points[:, :3] = rotateZ(this_points[:, :3], 720 * random.choice(seeds))
+            if 'scale' in augmentation:
+                s = 1 + random.choice(seeds)
+                this_points[:, :3] = scale(this_points[:, :3], x=s, y=s, z=s)
+
+        if is_plot:
+            ax3 = plt.subplot(2, 2, 3, projection='3d')
+            ax3.set_xlim((-0.3, 0.3))
+            ax3.set_ylim((-0.3, 0.3))
+            ax3.set_zlim((-0.3, 0.3))
+            ax3.set_xlabel('X', fontsize=10)
+            ax3.set_ylabel('Y', fontsize=10)
+            ax3.set_zlabel('Z', fontsize=10)
+            ax3.set_title('Hand Cluster', fontsize=10)
+
+            ax3.scatter(this_points[:, 0], this_points[:, 1], this_points[:, 2], 'o', c=this_points[:, 3], s=28,
+                        marker='o')
+
+        # create 3D feature space #############################
+        if 'clp' in augmentation:
+            produced_voxel = produce_voxel(this_points, isClipping=True)
+        else:
+            produced_voxel = produce_voxel(this_points, isClipping=False)
+
+        print('saving npy...', end='')
+        this_path = os.path.join(dataset_path, str(this_timestamp.as_integer_ratio()[0]) + '_' + str(
+            this_timestamp.as_integer_ratio()[1]) + aug_string)
+        if os.path.exists(this_path):
+            raise Exception('File ' + this_path + ' already exists. THIS SHOULD NEVER HAPPEN!')
+        np.save(this_path, produced_voxel)
+        print('saved to ' + this_path)
+
+        # Plot the hand cluster #########################################
+        # Combine the three images
+        if is_plot:
+            # plot the voxel
+            ax4 = plt.subplot(2, 2, 4, projection='3d')
+            ax4.set_aspect('equal')
+            ax4.set_xlabel('X', fontsize=10)
+            ax4.set_ylabel('Y', fontsize=10)
+            ax4.set_zlabel('Z', fontsize=10)
+            ax4.set_title('voxel', fontsize=10)
+            ax4.voxels(produced_voxel[0])
+
+            plt.savefig(os.path.join(util_path, str(this_timestamp) + '.jpg'))
+            radar_3dscatter_img = Image.open(os.path.join(util_path, str(this_timestamp) + '.jpg'))
+
+            images = [closest_video_img, radar_3dscatter_img]  # add image here to arrange them horizontally
+            widths, heights = zip(*(i.size for i in images))
+            total_width = sum(widths)
+            max_height = max(heights)
+            new_im = Image.new('RGB', (total_width, max_height))
+            x_offset = 0
+            for im in images:
+                new_im.paste(im, (x_offset, 0))
+                x_offset += im.size[0]
+
+            timestamp_difference = abs(float(this_timestamp) - float(closest_video_timestamp))
+            draw = ImageDraw.Draw(new_im)
+
+            # draw the timestamp difference on the image
+            (x, y) = (20, 10)
+            message = "Timestamp Difference, abs(rt-vt): " + str(timestamp_difference)
+            draw.text((x, y), message, fill=white_color, font=fnt)
+            # draw the timestamp
+            (x, y) = (20, 30)
+            message = "Timestamp: " + str(this_timestamp)
+            draw.text((x, y), message, fill=white_color, font=fnt)
+
+            # draw the number of points
+            (x, y) = (20, 60)
+            message = "Number of detected points: " + str(this_points.shape[0])
+            draw.text((x, y), message, fill=white_color, font=fnt)
+
+            # save the combined image
+            new_im.save(
+                os.path.join(figure_intervaled_path, str(this_timestamp) + '_' + str(this_timestamp.as_integer_ratio()[0]) +
+                             '_' + str(this_timestamp.as_integer_ratio()[1]) + '_' + str(interval_index) + '.jpg'))
+            plt.close('all')
+
+    # validate the output shapes
+

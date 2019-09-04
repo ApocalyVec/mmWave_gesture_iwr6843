@@ -7,10 +7,10 @@ import matplotlib.pyplot as plt
 from utils.path_utils import generate_train_val_ids
 from sklearn.preprocessing import MinMaxScaler
 
-regressor = load_model('D:/thumouse/trained_models/bestSoFar_thuMouse_CRNN2019-08-19_22-29-26.855251.h5')
+regressor = load_model('D:/PycharmProjects/mmWave_gesture_iwr6843/models/thm_model.h5')
 
-dataset_path = 'D:/thumouse/dataset'
-label_dict_path = 'D:/thumouse/labels/label_dict.p'
+dataset_path = 'D:/alldataset/thm_dataset'
+label_dict_path = 'D:/alldataset/thm_label_dict.p'
 
 label_dict = pickle.load(open(label_dict_path, 'rb'))
 
@@ -21,7 +21,7 @@ partition = generate_train_val_ids(0.1, dataset_path=dataset_path)
 X_test = []
 Y_test = []
 
-for i, val_sample in enumerate(partition['validation']):
+for i, val_sample in enumerate(partition['train']):
     print('Reading ' + str(i) + ' of 100')
     if i < 100:
         X_test.append(np.load(os.path.join(dataset_path, val_sample + '.npy')))
@@ -34,7 +34,7 @@ X_test = np.asarray(X_test)
 Y_predict = regressor.predict(X_test)
 
 # inverse scale
-mms = pickle.load(open('F:/thumouse/scaler/thm_scaler.p', 'rb'))
+mms = pickle.load(open('D:/PycharmProjects/mmWave_gesture_iwr6843/models/scalers/thm_scaler.p', 'rb'))
 Y_predict = mms.inverse_transform(Y_predict)
 Y_test = mms.inverse_transform(Y_test)
 

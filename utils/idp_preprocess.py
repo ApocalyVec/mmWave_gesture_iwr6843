@@ -19,10 +19,10 @@ specimen_list = [
     # generate_path('hw', 0, mode='idp'), generate_path('hw', 1, mode='idp'),
 
     generate_path('zy', 0, mode='idp'),
-    # generate_path('zy', 1, mode='idp'), # frame num 1379 problematic
+    generate_path('zy', 1, mode='idp'), # frame num 1379 problematic
     generate_path('zy', 2, mode='idp'), generate_path('zy', 3, mode='idp'),
     generate_path('zy', 4, mode='idp'), generate_path('zy', 5, mode='idp'),
-    # generate_path('zy', 6, mode='idp'),
+    generate_path('zy', 6, mode='idp'),  # problematic
     generate_path('zy', 7, mode='idp'),
     generate_path('zy', 8, mode='idp'), generate_path('zy', 9, mode='idp'),
     generate_path('zy', 10, mode='idp'), generate_path('zy', 11, mode='idp'),
