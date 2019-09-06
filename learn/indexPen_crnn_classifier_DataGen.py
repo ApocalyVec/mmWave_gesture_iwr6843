@@ -17,7 +17,7 @@ pre_trained_path = 'D:/code/DoubleMU/models/palmPad_model.h5'
 epochs = 5000
 is_use_pre_train = False
 num_classes = 5
-timesteps = 100
+timesteps = 80
 
 if __name__ == '__main__':
     dataGenParams = {'dim': (timesteps, 1, 25, 25, 25),
@@ -64,7 +64,7 @@ if __name__ == '__main__':
         classifier.add(Dense(num_classes, activation='softmax', kernel_initializer='random_uniform'))
 
         # adam = optimizers.adam(lr=1e-6, decay=1e-2 / epochs)
-        sgd = optimizers.SGD(lr=5e-5, momentum=0.9, decay=1e-2 / epochs, nesterov=True, clipvalue=0.5)
+        sgd = optimizers.SGD(lr=1e-4, momentum=0.9, decay=1e-2 / epochs, nesterov=True)
 
         classifier.compile(optimizer='sgd', loss='categorical_crossentropy', metrics=['accuracy'])
     else:
