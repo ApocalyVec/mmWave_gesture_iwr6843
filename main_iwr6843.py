@@ -16,7 +16,7 @@ import numpy as np
 import pyautogui
 
 
-data_q = collections.deque(maxlen=5)
+data_q = collections.deque(maxlen=1)
 data_list = []
 processed_data_list = []
 data_shape = (1, 25, 25, 25)
@@ -105,10 +105,10 @@ class PredictionThread(Thread):
         mouse_x = 0.0
         mouse_y = 0.0
         x_factor = 10.0
-        y_factor = 25.0
+        y_factor = 0
 
-        ma_x = StreamingMovingAverage(window_size=5)
-        ma_y = StreamingMovingAverage(window_size=5)
+        ma_x = StreamingMovingAverage(window_size=15)
+        ma_y = StreamingMovingAverage(window_size=100)
 
         if 'thm' in self.mode:
             thm_model = self.model_encoder_dict['thm'][0]
@@ -301,4 +301,4 @@ def main():
 
 if __name__ == '__main__':
     main()
-    print('The end!')
+    print('Finished!')

@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 from utils.path_utils import generate_train_val_ids
 from sklearn.preprocessing import MinMaxScaler
 
-regressor = load_model('D:/PycharmProjects/mmWave_gesture_iwr6843/models/thm_model.h5')
+regressor = load_model('D:/PycharmProjects/mmWave_gesture_iwr6843/models/thm_model_2.h5')
 
 dataset_path = 'D:/alldataset/thm_dataset'
 label_dict_path = 'D:/alldataset/thm_label_dict.p'

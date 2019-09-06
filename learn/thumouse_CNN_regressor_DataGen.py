@@ -13,9 +13,9 @@ from utils.path_utils import generate_train_val_ids
 
 
 if __name__ == '__main__':
-    is_use_pre_train = False
+    is_use_pre_train = True
     epochs = 5000
-    pre_trained_path = 'D:/thumouse/trained_models/bestSoFar_thuMouse_CRNN2019-08-22_07-02-16.697177.h5'
+    pre_trained_path = 'D:/PycharmProjects/mmWave_gesture_iwr6843/models/thm_model.h5'
     dataGenParams = {'dim': (1, 25, 25, 25),
                      'batch_size': 8,
                      'shuffle': True}
