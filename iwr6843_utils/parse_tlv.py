@@ -16,7 +16,7 @@ def tlvHeaderDecode(data):
     return tlvType, tlvLength
 
 
-def parseDetectedObjects(data, numObj, tlvLength):
+def parseDetectedObjects(data, numObj, tlvLength): #TODO debug this part
     detectedPoints = struct.unpack(str(numObj * 4) + 'f', data[:tlvLength])
     detectedPoints = np.asarray(detectedPoints).reshape(numObj, 4)
     # print(detectedPoints)
@@ -43,7 +43,7 @@ def parseStats(data, tlvLength):
 
 
 
-def tlvHeader(in_data):
+def tlvHeader(in_data): #TODO get rid of the buffer overflow problem
     """
 
     :param in_data:

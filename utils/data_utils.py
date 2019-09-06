@@ -83,7 +83,7 @@ def produce_voxel(points, isCluster=True, isClipping=False):
     if len(points) == 0:  # if there's no detected points
         return np.zeros(tuple([1] + volume_shape))
 
-    points_new = np.asarray([x for x in points if 1.0 > x[3] > -1.0])
+    points_new = np.asarray([x for x in points if 1.0 > x[3] > -1.0]) # TODO Velcity outta bound handled here
     if not np.all(points_new == points):
         print('Warning: point VELOCITY out of bound')
     points = points_new

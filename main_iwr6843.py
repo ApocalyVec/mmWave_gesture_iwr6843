@@ -58,7 +58,7 @@ root_dn = 'data/f_data-' + str(today).replace(':', '-').replace(' ', '_')
 
 # Model Globals
 is_simulate = False
-is_predict = True
+is_predict = False
 
 if is_predict:
     from utils.model_wrapper import NeuralNetwork, onehot_decoder
@@ -214,8 +214,8 @@ def main():
     # input_thread.start()
 
     configFileName = 'profiles/profile_further_tuned.cfg'
-    dataPortName = 'COM9'
-    userPortName = 'COM8'
+    dataPortName = 'COM3'
+    userPortName = 'COM5'
 
     # open the serial port to the radar
     user_port, data_port = serial_iwr6843.serialConfig(configFileName, dataPortName=dataPortName,
