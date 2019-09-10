@@ -5,8 +5,8 @@ import os
 
 # verify the timestamp overlap between vData and fData
 
-f_data_fn = 'data/f_data-2019-08-27_20-19-32.831660/f_data_points.p'
-v_data_fn = 'camera/v_data-2019-08-27_20-19-07.727807/cam2'
+f_data_fn = 'data/f_data_idp_zy_0/f_data_points.p'
+v_data_fn = 'camera/v_data_idp_zy_0/cam2'
 
 f_data = pickle.load(open(f_data_fn, 'rb'))
 
