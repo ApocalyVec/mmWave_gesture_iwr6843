@@ -123,7 +123,7 @@ def idp_preprocess(paths, is_plot=False, augmentation=(),
         print('Processing ' + str(i + 1) + ' of ' + str(len(radar_points)) + ', interval = ' + str(interval_index))
 
         if is_plot:
-            figure_intervaled_path = os.path.join(figure_path, str(interval_index - 1))
+            figure_intervaled_path = os.path.join(figure_path, str(interval_index))
 
             if not os.path.isdir(figure_intervaled_path):
                 os.mkdir(figure_intervaled_path)

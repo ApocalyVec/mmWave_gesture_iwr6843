@@ -58,7 +58,8 @@ root_dn = 'data/f_data-' + str(today).replace(':', '-').replace(' ', '_')
 
 # Model Globals
 is_simulate = False
-is_predict = False
+is_predict = True
+
 
 if is_predict:
     from utils.model_wrapper import NeuralNetwork, onehot_decoder

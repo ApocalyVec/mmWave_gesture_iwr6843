@@ -36,7 +36,7 @@ isDataGen = True
 for i, path in enumerate(specimen_list):
     # generate orignial data
     print('Processing specimen #' + str(i) + ' ' + str(path[0]) + '__________________________________')
-    idp_preprocess(path)
+    idp_preprocess(path, is_plot=True)
     # idp_preprocess(path, augmentation=['trans'])
 
     # idp_preprocess(path, augmentation=['clp', 'trans'])

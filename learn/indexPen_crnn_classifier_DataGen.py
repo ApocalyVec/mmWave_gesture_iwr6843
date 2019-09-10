@@ -40,14 +40,14 @@ if __name__ == '__main__':
         classifier = Sequential()
         classifier.add(
             TimeDistributed(
-                Conv3D(filters=16, kernel_size=(3, 3, 3), data_format='channels_first', input_shape=(1, 25, 25, 25),
-                       kernel_regularizer=l2(0.0005), kernel_initializer='random_uniform', activation='relu'),
+                Conv3D(filters=32, kernel_size=(3, 3, 3), data_format='channels_first', input_shape=(1, 25, 25, 25),
+                       kernel_regularizer=l2(0.0005), kernel_initializer='random_uniform'),
                 input_shape=(timesteps, 1, 25, 25, 25)))
         # classifier.add(TimeDistributed(LeakyReLU(alpha=0.1)))
         classifier.add(TimeDistributed(BatchNormalization()))
 
         classifier.add(TimeDistributed(
-            Conv3D(filters=16, kernel_size=(3, 3, 3), data_format='channels_first', kernel_regularizer=l2(0.0005))))
+            Conv3D(filters=32, kernel_size=(3, 3, 3), data_format='channels_first', kernel_regularizer=l2(0.0005))))
         # classifier.add(TimeDistributed(LeakyReLU(alpha=0.1)))
         classifier.add(TimeDistributed(BatchNormalization()))
 
@@ -55,18 +55,23 @@ if __name__ == '__main__':
 
         classifier.add(TimeDistributed(Flatten()))
 
-        classifier.add(LSTM(units=64, return_sequences=True, kernel_initializer='random_uniform'))
+        classifier.add(LSTM(units=128, return_sequences=True, kernel_initializer='random_uniform'))
         classifier.add(Dropout(rate=0.5))
 
-        classifier.add(LSTM(units=64, return_sequences=False, kernel_initializer='random_uniform'))
+        classifier.add(LSTM(units=128, return_sequences=True, kernel_initializer='random_uniform'))
         classifier.add(Dropout(rate=0.5))
+
+        classifier.add(LSTM(units=128, return_sequences=False, kernel_initializer='random_uniform'))
+        classifier.add(Dropout(rate=0.5))
+
+        classifier.add(Dense(units=128))
 
         classifier.add(Dense(num_classes, activation='softmax', kernel_initializer='random_uniform'))
 
         # adam = optimizers.adam(lr=1e-6, decay=1e-2 / epochs)
         sgd = optimizers.SGD(lr=1e-4, momentum=0.9, decay=1e-2 / epochs, nesterov=True)
 
-        classifier.compile(optimizer='sgd', loss='categorical_crossentropy', metrics=['accuracy'])
+        classifier.compile(optimizer=sgd, loss='categorical_crossentropy', metrics=['accuracy'])
     else:
         print('Using Pre-trained Model: ' + pre_trained_path)
         classifier = load_model(pre_trained_path)
