@@ -77,6 +77,7 @@ def parse_stream(data_port):
 
         if len(data_buffer) > data_buffer_max_size:
             print('Buffer Overflows')
+            print(data_buffer)
             raise KeyboardInterrupt
 
         is_packet_complete, leftover_data, detected_points = tlvHeader(data_buffer)

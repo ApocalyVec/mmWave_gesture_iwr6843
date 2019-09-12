@@ -9,61 +9,77 @@ from numpy import ma
 from sklearn.metrics import confusion_matrix
 
 import matplotlib.pyplot as plt
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import OneHotEncoder
 
 from utils.data_utils import plot_confusion_matrix
 from utils.path_utils import generate_train_val_ids
 
-idp_model_path = 'D:\PycharmProjects\mmWave_gesture_iwr6843\models\palmPad_model.h5'
+idp_model_path = 'D:/trained_models/bestSoFar_indexPen_CRNN2019-09-10_13-57-36.143313.h5'
 idp_model = load_model(idp_model_path)
 
-label_dict = pickle.load(open('E:\indexPen\labels_old/label_dict.p', 'rb'))
+labels = pickle.load(open('D:/alldataset/idp_label_dict.p', 'rb'))
 
-dataset_path = 'E:\indexPen\dataset_old'
-partition = generate_train_val_ids(0.1, dataset_path=dataset_path)
+dataset_path = 'D:/alldataset/idp_dataset'
 
-y_test = []
-y_pred_nn_output = []
+# partition = generate_train_val_ids(0.1, dataset_path=dataset_path)
+#
+# x_test = []
+# y_test = []
+#
+# sample = None
+#
+# for i, sample_path in enumerate(partition['train']):
+#     print('Processing ' + str(i) + ' of ' + str(len(os.listdir(dataset_path))))
+#
+#     if sample is not None:
+#         a = np.all(sample == np.load(os.path.join(dataset_path, sample_path + '.npy')))
+#         assert not a
+#
+#     sample = (np.load(os.path.join(dataset_path, sample_path + '.npy')))
+#     x_test.append(sample)
+#
+#     y_test.append(label_dict[os.path.splitext(sample_path)[0]])
 
-sample = None
 
-for i, sample_path in enumerate(os.listdir(dataset_path)):
-    print('Processing ' + str(i) + ' of ' + str(len(os.listdir(dataset_path))))
+X = []
+Y = []
+# for i, data in enumerate(sorted(os.listdir(dataset_path), key=lambda x: int(x.strip('.npy').split('_')[2]))):
+for i, data in enumerate(os.listdir(dataset_path)):
+    X.append(np.load(os.path.join(dataset_path, data)))
+    Y.append(labels[os.path.splitext(data)[0]])
+X = np.asarray(X)
+Y = np.asarray(Y)
 
-    if sample is not None:
-        a = np.all(sample == np.load(os.path.join(dataset_path, sample_path)))
-        assert not a
+encoder = OneHotEncoder(categories='auto')
+Y = encoder.fit_transform(np.expand_dims(Y, axis=1)).toarray()
 
-    sample = (np.load(os.path.join(dataset_path, sample_path)))
+X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.20, random_state=3, shuffle=True)
 
-    y_pred_nn_output.append(idp_model.predict(np.expand_dims(sample, axis=0))[0])
+y_pred = idp_model.predict(np.asarray(X_train), batch_size=8)
 
-    y_test.append(label_dict[os.path.splitext(sample_path)[0]])
-
-y_test = np.asarray(y_test)
-y_pred = np.argmax(y_pred_nn_output, axis=1)
-
-plot_confusion_matrix(y_test, y_pred, classes=np.asarray(['A', 'D', 'L', 'M', 'P']), title='IndexPen Confusion Matrix')
+plot_confusion_matrix(Y_train.argmax(axis=1), y_pred.argmax(axis=1), classes=np.asarray(['DEL', 'E', 'H', 'L', 'O']), title='IndexPen Confusion Matrix')
 plt.show()
 
-correct_mask = (y_pred != y_test)
-incorrect_mask = (y_pred == y_test)
-
-y_correctly_masked_nn_output = ma.array(np.amax(y_pred_nn_output, axis=1), mask=correct_mask)
-y_correct_nn_output = y_correctly_masked_nn_output.compressed()
-
-y_wrongfully_masked_nn_output = ma.array(np.amax(y_pred_nn_output, axis=1), mask=incorrect_mask)
-y_wrong_nn_output = y_wrongfully_masked_nn_output.compressed()
-
-sorted_correct = np.sort(y_correct_nn_output)
-sorted_wrong = np.sort(y_wrong_nn_output)
-
-wrong_mean = np.mean(y_wrong_nn_output)
-correct_mean = np.mean(y_correct_nn_output)
-
-plt.plot(sorted_wrong)
-plt.plot(sorted_correct)
-
-plt.show()
+# correct_mask = (y_pred != y_test)
+# incorrect_mask = (y_pred == y_test)
+#
+# y_correctly_masked_nn_output = ma.array(np.amax(y_pred_nn_output, axis=1), mask=correct_mask)
+# y_correct_nn_output = y_correctly_masked_nn_output.compressed()
+#
+# y_wrongfully_masked_nn_output = ma.array(np.amax(y_pred_nn_output, axis=1), mask=incorrect_mask)
+# y_wrong_nn_output = y_wrongfully_masked_nn_output.compressed()
+#
+# sorted_correct = np.sort(y_correct_nn_output)
+# sorted_wrong = np.sort(y_wrong_nn_output)
+#
+# wrong_mean = np.mean(y_wrong_nn_output)
+# correct_mean = np.mean(y_correct_nn_output)
+#
+# plt.plot(sorted_wrong)
+# plt.plot(sorted_correct)
+#
+# plt.show()
 
 # Plot ROC --------------------------------------------------
 # from sklearn.metrics import roc_curve

@@ -58,7 +58,7 @@ root_dn = 'data/f_data-' + str(today).replace(':', '-').replace(' ', '_')
 
 # Model Globals
 is_simulate = False
-is_predict = True
+is_predict = False
 
 
 if is_predict:

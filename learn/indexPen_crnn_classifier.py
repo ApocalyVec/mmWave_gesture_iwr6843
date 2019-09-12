@@ -43,7 +43,7 @@ if __name__ == '__main__':
     encoder = OneHotEncoder(categories='auto')
     Y = encoder.fit_transform(np.expand_dims(Y, axis=1)).toarray()
 
-    X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.10, random_state=3, shuffle=True)
+    X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.20, random_state=3, shuffle=True)
 
     # Build the RNN ###############################################
     if not is_use_pre_train:
@@ -80,10 +80,10 @@ if __name__ == '__main__':
 
         classifier.add(Dense(num_classes, activation='softmax', kernel_initializer='random_uniform'))
 
-        # adam = optimizers.adam(lr=1e-6, decay=1e-2 / epochs)
-        sgd = optimizers.SGD(lr=1e-4, momentum=0.9, decay=1e-2 / epochs, nesterov=True)
+        adam = optimizers.adam(lr=5e-6, decay=1e-6)
+        # sgd = optimizers.SGD(lr=5e-5, momentum=0.9, decay=1e-6, nesterov=True)
 
-        classifier.compile(optimizer=sgd, loss='categorical_crossentropy', metrics=['accuracy'])
+        classifier.compile(optimizer=adam, loss='categorical_crossentropy', metrics=['accuracy'])
     else:
         print('Using Pre-trained Model: ' + pre_trained_path)
         classifier = load_model(pre_trained_path)

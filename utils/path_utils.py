@@ -134,16 +134,16 @@ def idp_preprocess(paths, is_plot=False, augmentation=(),
             closest_video_img = Image.open(closest_video_path)
 
             # plot the radar scatter
-            ax1 = plt.subplot(2, 2, 1, projection='3d')
-            ax1.set_xlim((-0.3, 0.3))
-            ax1.set_ylim((-0.3, 0.3))
-            ax1.set_zlim((-0.3, 0.3))
-            ax1.set_xlabel('X', fontsize=10)
-            ax1.set_ylabel('Y', fontsize=10)
-            ax1.set_zlabel('Z', fontsize=10)
-            ax1.set_title('Detected Points', fontsize=10)
-            # plot the detected points
-            ax1.scatter(this_points[:, 0], this_points[:, 1], this_points[:, 2], c=this_points[:, 3], marker='o')
+            # ax1 = plt.subplot(2, 2, 1, projection='3d')
+            # ax1.set_xlim((-0.3, 0.3))
+            # ax1.set_ylim((-0.3, 0.3))
+            # ax1.set_zlim((-0.3, 0.3))
+            # ax1.set_xlabel('X', fontsize=10)
+            # ax1.set_ylabel('Y', fontsize=10)
+            # ax1.set_zlabel('Z', fontsize=10)
+            # ax1.set_title('Detected Points', fontsize=10)
+            # # plot the detected points
+            # ax1.scatter(this_points[:, 0], this_points[:, 1], this_points[:, 2], c=this_points[:, 3], marker='o')
 
         # assert np.all(produce_voxel(this_points) == this_voxel)
 
@@ -161,16 +161,18 @@ def idp_preprocess(paths, is_plot=False, augmentation=(),
                 this_points[:, :3] = scale(this_points[:, :3], x=s, y=s, z=s)
 
         if is_plot:
-            ax3 = plt.subplot(2, 2, 3, projection='3d')
+            # ax3 = plt.subplot(2, 2, 3, projection='3d')
+            ax3 = plt.subplot(111, projection='3d')
+
             ax3.set_xlim((-0.3, 0.3))
             ax3.set_ylim((-0.3, 0.3))
             ax3.set_zlim((-0.3, 0.3))
             ax3.set_xlabel('X', fontsize=10)
             ax3.set_ylabel('Y', fontsize=10)
             ax3.set_zlabel('Z', fontsize=10)
-            ax3.set_title('Hand Cluster', fontsize=10)
+            ax3.set_title('Detected Points', fontsize=20)
 
-            ax3.scatter(this_points[:, 0], this_points[:, 1], this_points[:, 2], 'o', c=this_points[:, 3], s=28,
+            ax3.scatter(this_points[:, 0], this_points[:, 1], this_points[:, 2], ',', c=this_points[:, 3], s=28,
                         marker='o')
 
         # create 3D feature space #############################
@@ -182,13 +184,13 @@ def idp_preprocess(paths, is_plot=False, augmentation=(),
         # Combine the three images
         if is_plot:
             # plot the voxel
-            ax4 = plt.subplot(2, 2, 4, projection='3d')
-            ax4.set_aspect('equal')
-            ax4.set_xlabel('X', fontsize=10)
-            ax4.set_ylabel('Y', fontsize=10)
-            ax4.set_zlabel('Z', fontsize=10)
-            ax4.set_title('voxel', fontsize=10)
-            ax4.voxels(produced_voxel[0])
+            # ax4 = plt.subplot(2, 2, 4, projection='3d')
+            # ax4.set_aspect('equal')
+            # ax4.set_xlabel('X', fontsize=10)
+            # ax4.set_ylabel('Y', fontsize=10)
+            # ax4.set_zlabel('Z', fontsize=10)
+            # ax4.set_title('voxel', fontsize=10)
+            # ax4.voxels(produced_voxel[0])
 
             plt.savefig(os.path.join(util_path, str(this_timestamp) + '.jpg'))
             radar_3dscatter_img = Image.open(os.path.join(util_path, str(this_timestamp) + '.jpg'))
@@ -203,22 +205,23 @@ def idp_preprocess(paths, is_plot=False, augmentation=(),
                 new_im.paste(im, (x_offset, 0))
                 x_offset += im.size[0]
 
-            timestamp_difference = abs(float(this_timestamp) - float(closest_video_timestamp))
-            draw = ImageDraw.Draw(new_im)
+            if False:
+                timestamp_difference = abs(float(this_timestamp) - float(closest_video_timestamp))
+                draw = ImageDraw.Draw(new_im)
 
-            # draw the timestamp difference on the image
-            (x, y) = (20, 10)
-            message = "Timestamp Difference, abs(rt-vt): " + str(timestamp_difference)
-            draw.text((x, y), message, fill=white_color, font=fnt)
-            # draw the timestamp
-            (x, y) = (20, 30)
-            message = "Timestamp: " + str(this_timestamp)
-            draw.text((x, y), message, fill=white_color, font=fnt)
+                # draw the timestamp difference on the image
+                (x, y) = (20, 10)
+                message = "Timestamp Difference, abs(rt-vt): " + str(timestamp_difference)
+                draw.text((x, y), message, fill=white_color, font=fnt)
+                # draw the timestamp
+                (x, y) = (20, 30)
+                message = "Timestamp: " + str(this_timestamp)
+                draw.text((x, y), message, fill=white_color, font=fnt)
 
-            # draw the number of points
-            (x, y) = (20, 60)
-            message = "Number of detected points: " + str(this_points.shape[0])
-            draw.text((x, y), message, fill=white_color, font=fnt)
+                # draw the number of points
+                (x, y) = (20, 60)
+                message = "Number of detected points: " + str(this_points.shape[0])
+                draw.text((x, y), message, fill=white_color, font=fnt)
 
             # save the combined image
             new_im.save(
@@ -318,13 +321,13 @@ def generate_path(subject_name: str, case_index: int, mode: str) -> tuple:
     f_dir = 'f_data_' + mode + '_' + identity_string
     v_dir = 'v_data_' + mode + '_' + identity_string
 
-    root_path = 'E:/alldata'
+    root_path = 'E:/alldata_' + mode
 
     radar_point_data_path = os.path.join(root_path, f_dir, 'f_data_points.p')
     radar_voxel_data_path = os.path.join(root_path, f_dir, 'f_data_voxel.p')
 
     videoData_path = os.path.join(root_path, v_dir, 'cam2')
-    mergedImg_path = os.path.join('E:/allfig', identity_string)
+    mergedImg_path = os.path.join('E:/allfig_' + mode, identity_string)
     out_path = os.path.join('E:/alldataset', mode + '_' + identity_string)
 
     return radar_point_data_path, radar_voxel_data_path, videoData_path, mergedImg_path, out_path, identity_string
@@ -462,13 +465,13 @@ def thm_preprocess(paths, is_plot=False, augmentation=(),
         else:
             produced_voxel = produce_voxel(this_points, isClipping=False)
 
-        print('saving npy...', end='')
+        # print('saving npy...', end='')
         this_path = os.path.join(dataset_path, str(this_timestamp.as_integer_ratio()[0]) + '_' + str(
             this_timestamp.as_integer_ratio()[1]) + aug_string)
         if os.path.exists(this_path):
             raise Exception('File ' + this_path + ' already exists. THIS SHOULD NEVER HAPPEN!')
         np.save(this_path, produced_voxel)
-        print('saved to ' + this_path)
+        # print('saved to ' + this_path)
 
         # Plot the hand cluster #########################################
         # Combine the three images
