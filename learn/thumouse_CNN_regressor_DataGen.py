@@ -14,7 +14,7 @@ from utils.path_utils import generate_train_val_ids
 
 if __name__ == '__main__':
     is_use_pre_train = True
-    epochs = 5000
+    epochs = 50000
     pre_trained_path = 'D:/PycharmProjects/mmWave_gesture_iwr6843/models/thm_model.h5'
     dataGenParams = {'dim': (1, 25, 25, 25),
                      'batch_size': 8,
@@ -33,7 +33,9 @@ if __name__ == '__main__':
     if not is_use_pre_train:
         # Build the RNN ###############################################
         model = Sequential()
-        model.add(Conv3D(filters=16, kernel_size=(3, 3, 3), data_format='channels_first', input_shape=(1, 25, 25, 25), kernel_regularizer=l2(0.0005)))
+        model.add(Conv3D(filters=16, kernel_size=(3, 3, 3), data_format='channels_first', input_shape=(1, 25, 25, 25),
+                         # kernel_regularizer=l2(0.0005)
+                         ))
         # model.add(LeakyReLU(alpha=0.1))
         model.add(Conv3D(filters=16, kernel_size=(3, 3, 3), data_format='channels_first'))
         # model.add(LeakyReLU(alpha=0.1))
@@ -48,13 +50,13 @@ if __name__ == '__main__':
         # model.add(TimeDistributed(MaxPooling3D(pool_size=(2, 2, 2))))
 
         model.add(Flatten())
-        model.add(Dense(units=128))
+        model.add(Dense(units=256))
         model.add(LeakyReLU(alpha=0.1))
         model.add(Dropout(0.5))
 
-        model.add(Dense(units=2))
-        sgd = optimizers.SGD(lr=5e-5, momentum=0.9, decay=1e-2 / epochs, nesterov=True, clipvalue=0.5)
-        adam = optimizers.adam(lr=1e-3, decay=1e-2 / epochs)
+        model.add(Dense(units=3))
+        sgd = optimizers.SGD(lr=5e-5, momentum=0.9, decay=1e-6, nesterov=True)
+        # adam = optimizers.adam(lr=1e-3, decay=1e-2 / epochs)
         model.compile(optimizer=sgd, loss='mean_squared_error')
     else:
         print('Using Pre-trained Model: ' + pre_trained_path)
