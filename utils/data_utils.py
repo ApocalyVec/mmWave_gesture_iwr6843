@@ -187,6 +187,22 @@ def snapPointsToVolume(points, volume_shape, isClipping=False, radius=3, decay=0
 # end = time.time()
 # print('Preprocessing frame took ' + str(end-start))
 
+def merge_dict(dicts: list):
+    merged_dict = dict()
+    merged_len = 0
+    for d in dicts:
+        merged_len += len(d)
+        merged_dict = {**merged_dict, **d}
+
+    # make sure there is no replacement of elements
+    try:
+        assert merged_len == len(merged_dict)
+    except AssertionError as ae:
+        print(str(ae))
+        raise Exception('dict item replaced!')
+    return merged_dict
+
+
 class StreamingMovingAverage:
     def __init__(self, window_size):
         self.window_size = window_size
