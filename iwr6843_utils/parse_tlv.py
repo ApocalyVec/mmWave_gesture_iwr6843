@@ -54,15 +54,17 @@ def tlvHeader(in_data): #TODO get rid of the buffer overflow problem
 
     # print('Current data len is: ' + str(len(in_data)))
     offset = in_data.find(magic)
+    if offset == -1:
+        return False, None, None, True
     data = in_data[offset:]
     if len(data) < headerLength:
-        return False, None, None
+        return False, None, None, False
     try:
         magic, version, length, platform, frameNum, cpuCycles, numObj, numTLVs = struct.unpack('Q7I',
-                                                                                               data[:headerLength])
+                                                                                               data[:headerLength]) #would error if length is too low < 36
     except struct.error:
         # print ("Improper TLV structure found: ", (data,))
-        return False, None, None
+        return False, None, None, False
     # print("Packet ID:\t%d "%(frameNum))
     # print("Version:\t%x "%(version))
     # print("Data Len:\t\t%d", length)
@@ -79,6 +81,8 @@ def tlvHeader(in_data): #TODO get rid of the buffer overflow problem
 
             for i in range(numTLVs):
                 tlvType, tlvLength = tlvHeaderDecode(data[:8])
+                if tlvLength > 3024 - 8:  # to get rid of the frame that would cause overflow
+                    return False, None, None, True
                 data = data[8:]
                 if tlvType == 1:
                     # print('Outputting Points')
@@ -94,12 +98,12 @@ def tlvHeader(in_data): #TODO get rid of the buffer overflow problem
                 data = data[tlvLength:]
                 pendingBytes -= (8 + tlvLength)
             data = data[pendingBytes:]  # data that are left
-            return True, data, detected_points
+            return True, data, detected_points, False
         except struct.error:
             # print('Packet is not complete yet')
             pass
 
-    return False, None, None
+    return False, None, None, False
 
 
 if __name__ == "__main__":
