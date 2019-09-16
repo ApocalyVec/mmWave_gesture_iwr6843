@@ -332,10 +332,9 @@ def generate_path(subject_name: str, case_index: int, mode: str) -> tuple:
 
     return radar_point_data_path, radar_voxel_data_path, videoData_path, mergedImg_path, out_path, identity_string
 
-def generate_train_val_ids(test_ratio, dataset_path):
-    data_ids = os.listdir(dataset_path)
+def generate_train_val_ids(test_ratio, dataset):
 
-    data_ids = list(map(lambda x: os.path.splitext(x)[0], data_ids))
+    data_ids = list(map(lambda x: os.path.splitext(x)[0], dataset))
 
     # use pre-set random for reproducibility
     random.seed(3)
@@ -400,13 +399,16 @@ def thm_preprocess(paths, is_plot=False, augmentation=(),
     else:
         print('No augmentation applied')
 
+    buffer_size = 5
+    buffer = []
+
     for i, (this_points_and_ts, this_voxel_and_ts) in enumerate(zip(radar_points, radar_voxel)):
         # retrieve the timestamp making sure the data is synced
         assert this_points_and_ts[0] == this_voxel_and_ts[0]
         this_timestamp = this_points_and_ts[0]
         this_points = this_points_and_ts[1]
         this_voxel = this_voxel_and_ts[1]
-        print('Processing ' + str(i + 1) + ' of ' + str(len(radar_points)) + ', interval = ' + str(interval_index))
+        print('Processing ' + str(i + 1) + ' of ' + str(len(radar_points)) + ', items in buffer = ' + str(len(buffer)))
 
         if is_plot:
             figure_intervaled_path = os.path.join(figure_path, str(interval_index - 1))
@@ -465,13 +467,20 @@ def thm_preprocess(paths, is_plot=False, augmentation=(),
         else:
             produced_voxel = produce_voxel(this_points, isClipping=False)
 
-        # print('saving npy...', end='')
-        this_path = os.path.join(dataset_path, str(this_timestamp.as_integer_ratio()[0]) + '_' + str(
-            this_timestamp.as_integer_ratio()[1]) + aug_string)
-        if os.path.exists(this_path):
-            raise Exception('File ' + this_path + ' already exists. THIS SHOULD NEVER HAPPEN!')
-        np.save(this_path, produced_voxel)
-        # print('saved to ' + this_path)
+        if len(buffer) == buffer_size:
+            buffer = buffer[-buffer_size + 1:]
+            buffer.append(produced_voxel)
+
+            # print('saving npy...', end='')
+            this_path = os.path.join(dataset_path, str(this_timestamp.as_integer_ratio()[0]) + '_' + str(
+                this_timestamp.as_integer_ratio()[1]) + aug_string)
+            if os.path.exists(this_path):
+                raise Exception('File ' + this_path + ' already exists. THIS SHOULD NEVER HAPPEN!')
+            np.save(this_path, np.asarray(buffer))
+            print('saved to ' + this_path)
+
+        else:
+            buffer.append(produced_voxel)
 
         # Plot the hand cluster #########################################
         # Combine the three images

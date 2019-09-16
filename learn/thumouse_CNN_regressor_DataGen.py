@@ -1,6 +1,6 @@
 import datetime
 import pickle
-
+import os
 from keras import Sequential, optimizers
 from keras.callbacks import EarlyStopping, ModelCheckpoint
 from keras.engine.saving import load_model
@@ -23,7 +23,9 @@ if __name__ == '__main__':
     dataset_path = 'D:/alldataset/thm_dataset'
     label_dict_path = 'D:/alldataset/thm_label_dict.p'
 
-    partition = generate_train_val_ids(0.2, dataset_path=dataset_path)
+    data_ids = os.listdir(dataset_path)
+
+    partition = generate_train_val_ids(0.2, dataset_path=data_ids)
     labels = pickle.load(open(label_dict_path, 'rb'))
 
     ## Generators
@@ -55,9 +57,9 @@ if __name__ == '__main__':
         model.add(Dropout(0.5))
 
         model.add(Dense(units=3))
-        sgd = optimizers.SGD(lr=5e-5, momentum=0.9, decay=1e-6, nesterov=True)
-        # adam = optimizers.adam(lr=1e-3, decay=1e-2 / epochs)
-        model.compile(optimizer=sgd, loss='mean_squared_error')
+        # sgd = optimizers.SGD(lr=5e-5, momentum=0.9, decay=1e-6, nesterov=True)
+        adam = optimizers.adam(lr=5e-6, decay=1e-6)
+        model.compile(optimizer=adam, loss='mean_squared_error')
     else:
         print('Using Pre-trained Model: ' + pre_trained_path)
         model = load_model(pre_trained_path)

@@ -22,7 +22,7 @@ from utils.path_utils import generate_train_val_ids
 pre_trained_path = 'D:/code/DoubleMU/models/palmPad_model.h5'
 epochs = 50000
 is_use_pre_train = False
-num_classes = 5
+num_classes = 4
 timesteps = 80
 
 if __name__ == '__main__':
@@ -35,8 +35,10 @@ if __name__ == '__main__':
     Y = []
     # for i, data in enumerate(sorted(os.listdir(dataset_path), key=lambda x: int(x.strip('.npy').split('_')[2]))):
     for i, data in enumerate(os.listdir(dataset_path)):
-        X.append(np.load(os.path.join(dataset_path, data)))
-        Y.append(labels[os.path.splitext(data)[0]])
+        print('Loading ' + str(i) + ' of ' + str(len(os.listdir(dataset_path))))
+        if labels[os.path.splitext(data)[0]] != 4: # this is not an 'O'
+            X.append(np.load(os.path.join(dataset_path, data)))
+            Y.append(labels[os.path.splitext(data)[0]])
     X = np.asarray(X)
     Y = np.asarray(Y)
 
