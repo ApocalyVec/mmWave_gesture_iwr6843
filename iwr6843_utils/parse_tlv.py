@@ -55,6 +55,7 @@ def tlvHeader(in_data): #TODO get rid of the buffer overflow problem
     # print('Current data len is: ' + str(len(in_data)))
     offset = in_data.find(magic)
     if offset == -1:
+        print('no magic found')
         return False, None, None, True
     data = in_data[offset:]
     if len(data) < headerLength:
@@ -71,6 +72,9 @@ def tlvHeader(in_data): #TODO get rid of the buffer overflow problem
     # print("TLV:\t\t%d "%(numTLVs))
     # print("Detect Obj:\t%d "%(numObj))
     # print("Platform:\t%X "%(platform))
+    if length > 3200-36: #To reset the buffer and drop the frame when the TLV is too large
+        print('length over 3200')
+        return False, None, None, True
     if version > 0x01000005 and len(data) >= length:
         try:
             subFrameNum = struct.unpack('I', data[36:40])[0]

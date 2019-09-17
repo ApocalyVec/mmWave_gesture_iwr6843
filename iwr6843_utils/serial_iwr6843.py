@@ -74,17 +74,18 @@ def parse_stream(data_port):
 
     try:
         data_buffer += data_port.read(data_chunk_size)
-        if len(data_buffer) > data_buffer_max_size: #might have to handle the out of bound here
+        if len(data_buffer) > data_buffer_max_size:
             print('Buffer Overflows')
             raise KeyboardInterrupt
         #Might have to add data_port.read = data_temp; and if data_temp is not b''
-        is_packet_complete, leftover_data, detected_points, signal_reset = tlvHeader(data_buffer) #might need to add reset bit
+        is_packet_complete, leftover_data, detected_points, signal_reset = tlvHeader(data_buffer)
 
         if is_packet_complete & ~signal_reset:
             data_buffer = b'' + leftover_data
             return detected_points
         elif signal_reset: #added reset bit
             data_buffer = b''  #test if this works or not
+            print("Resetted")
             return None
         else:
             return None
