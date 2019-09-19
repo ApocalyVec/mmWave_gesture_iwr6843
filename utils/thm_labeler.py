@@ -4,7 +4,7 @@ import os
 from utils.data_utils import merge_dict
 
 pred_dir = 'C:/Users/S-Vec/Downloads/R_predict_new/R_predict'
-dataset_dir = 'D:/alldataset/thm_dataset'
+dataset_dir = 'E:/alldataset/thm_dataset_ts_1/thm_dataset'
 
 pred_file_list = os.listdir(pred_dir)
 
@@ -23,5 +23,5 @@ for key, value in merged_pred_dict.items():
     result_dict[key] = value[3:]
     result_dict[key + '_trans'] = value[3:]
 
-pickle.dump(data_without_label, open('D:/alldataset/thm_data_without_label.p', 'wb'))
-pickle.dump(result_dict, open('D:/alldataset/thm_label_dict.p', 'wb'))
+pickle.dump(data_without_label, open('E:/alldataset/thm_dataset_ts_1/thm_data_without_label.p', 'wb'))
+pickle.dump(result_dict, open('E:/alldataset/thm_dataset_ts_1/thm_label_dict.p', 'wb'))

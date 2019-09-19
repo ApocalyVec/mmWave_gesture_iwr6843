@@ -58,8 +58,7 @@ root_dn = 'data/f_data-' + str(today).replace(':', '-').replace(' ', '_')
 
 # Model Globals
 is_simulate = False
-is_predict = False
-
+is_predict = True
 
 if is_predict:
     from utils.model_wrapper import NeuralNetwork, onehot_decoder
@@ -103,13 +102,14 @@ class PredictionThread(Thread):
         sequence_buffer = np.zeros(tuple([buffer_size] + list(data_shape)))
 
         # thumouse related vars
-        mouse_x = 0.0
-        mouse_y = 0.0
-        x_factor = 10.0
-        y_factor = 0
+        thm_timestep = 1
 
-        ma_x = StreamingMovingAverage(window_size=15)
-        ma_y = StreamingMovingAverage(window_size=100)
+        x_factor = 1.0
+        y_factor = 0.0
+        z_factor = 1.0
+
+        ma_x = StreamingMovingAverage(window_size=1)
+        ma_y = StreamingMovingAverage(window_size=1)
 
         if 'thm' in self.mode:
             thm_model = self.model_encoder_dict['thm'][0]
@@ -152,12 +152,17 @@ class PredictionThread(Thread):
 
                 if 'thm' in self.mode:
                     # if not np.any(sequence_buffer[-1]):
-                    thm_pred_result = thm_model.predict(x=np.expand_dims(sequence_buffer[-1], axis=0))
+                    if thm_timestep != 1:
+                        thm_pred_result = thm_model.predict(x=np.expand_dims(sequence_buffer[-thm_timestep:], axis=0))
+                    else:
+                        thm_pred_result = thm_model.predict(x=np.expand_dims(sequence_buffer[-1], axis=0))
+
                     # expand dim for single sample batch
                     decoded_result = thm_decoder.inverse_transform(thm_pred_result)
 
                     delta_x = decoded_result[0][0] * x_factor
                     delta_y = decoded_result[0][1] * y_factor
+                    # delta_z = decoded_result[0][2] * z_factor
 
                     delta_x_ma = ma_x.process(delta_x)
                     delta_y_ma = ma_y.process(delta_y)
@@ -170,7 +175,7 @@ class PredictionThread(Thread):
                     # if self.thumouse_gui is not None:
                         # self.thumouse_gui.setData([mouse_x], [mouse_y])
 
-                    print(str(delta_x_ma) + ' ' + str(delta_y_ma) + '     ' + str(len(data_q)))
+                    print(str(delta_x_ma) + '       ' + str(delta_y_ma) + '     ' + str(len(data_q)))
 
 
 def load_model(model_path, encoder=None):

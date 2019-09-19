@@ -22,6 +22,10 @@ if __name__ == '__main__':
 
     pre_trained_path = 'D:/PycharmProjects/mmWave_gesture_iwr6843/models/thm_model.h5'
 
+    # dataset_path = 'E:/alldataset/thm_dataset_ts_1/thm_dataset'
+    # label_dict_path = 'E:/alldataset/thm_dataset_ts_1/thm_label_dict.p'
+    # data_without_label = pickle.load(open('E:/alldataset/thm_dataset_ts_1/thm_data_without_label.p', 'rb'))
+
     dataset_path = 'D:/alldataset/thm_dataset'
     label_dict_path = 'D:/alldataset/thm_label_dict.p'
     data_without_label = pickle.load(open('D:/alldataset/thm_data_without_label.p', 'rb'))
@@ -47,47 +51,45 @@ if __name__ == '__main__':
     X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.20, random_state=3, shuffle=True)
 
     if not is_use_pre_train:
-        # # Build the RNN ###############################################
-        # model = Sequential()
-        # model.add(Conv3D(filters=16, kernel_size=(3, 3, 3), data_format='channels_first', input_shape=(1, 25, 25, 25),
-        #                  # kernel_regularizer=l2(0.0005)
-        #                  ))
-        # # model.add(LeakyReLU(alpha=0.1))
-        # model.add(Conv3D(filters=16, kernel_size=(3, 3, 3), data_format='channels_first'))
-        # # model.add(LeakyReLU(alpha=0.1))
-        #
-        # model.add(BatchNormalization())
-        # model.add(MaxPooling3D(pool_size=(2, 2, 2)))
-        #
-        # model.add(Flatten())
-
-
+        # CNN version ###############################################
         model = Sequential()
-        model.add(
-            TimeDistributed(
-                Conv3D(filters=16, kernel_size=(3, 3, 3), data_format='channels_first', input_shape=(1, 25, 25, 25),
-                       kernel_regularizer=l2(0.0005), kernel_initializer='random_uniform'),
-                input_shape=(timesteps, 1, 25, 25, 25)))
-        # classifier.add(TimeDistributed(LeakyReLU(alpha=0.1)))
-        model.add(TimeDistributed(BatchNormalization()))
+        model.add(Conv3D(filters=16, kernel_size=(3, 3, 3), data_format='channels_first', input_shape=(1, 25, 25, 25),
+                         # kernel_regularizer=l2(0.0005)
+                         ))
+        # model.add(LeakyReLU(alpha=0.1))
+        model.add(Conv3D(filters=16, kernel_size=(3, 3, 3), data_format='channels_first'))
+        # model.add(LeakyReLU(alpha=0.1))
 
-        model.add(TimeDistributed(
-            Conv3D(filters=16, kernel_size=(3, 3, 3), data_format='channels_first', kernel_regularizer=l2(0.0005))))
-        # classifier.add(TimeDistributed(LeakyReLU(alpha=0.1)))
-        model.add(TimeDistributed(BatchNormalization()))
+        model.add(BatchNormalization())
+        model.add(MaxPooling3D(pool_size=(2, 2, 2)))
 
-        model.add(TimeDistributed(MaxPooling3D(pool_size=(2, 2, 2))))
+        model.add(Flatten())
 
-        model.add(TimeDistributed(Flatten()))
-
-        model.add(LSTM(units=64, return_sequences=True, kernel_initializer='random_uniform'))
-        model.add(Dropout(rate=0.2))
-
-        model.add(LSTM(units=64, return_sequences=True, kernel_initializer='random_uniform'))
-        model.add(Dropout(rate=0.2))
-
-        model.add(LSTM(units=64, return_sequences=False, kernel_initializer='random_uniform'))
-        model.add(Dropout(rate=0.2))
+        # CRNN version ################################################
+        # model = Sequential()
+        # model.add(
+        #     TimeDistributed(
+        #         Conv3D(filters=16, kernel_size=(3, 3, 3), data_format='channels_first', input_shape=(1, 25, 25, 25),
+        #                kernel_regularizer=l2(0.0005), kernel_initializer='random_uniform'),
+        #         input_shape=(timesteps, 1, 25, 25, 25)))
+        # # classifier.add(TimeDistributed(LeakyReLU(alpha=0.1)))
+        # model.add(TimeDistributed(BatchNormalization()))
+        #
+        # model.add(TimeDistributed(
+        #     Conv3D(filters=16, kernel_size=(3, 3, 3), data_format='channels_first', kernel_regularizer=l2(0.0005))))
+        # # classifier.add(TimeDistributed(LeakyReLU(alpha=0.1)))
+        # model.add(TimeDistributed(BatchNormalization()))
+        # model.add(TimeDistributed(MaxPooling3D(pool_size=(2, 2, 2))))
+        # model.add(TimeDistributed(Flatten()))
+        #
+        # model.add(LSTM(units=64, return_sequences=True, kernel_initializer='random_uniform'))
+        # model.add(Dropout(rate=0.2))
+        #
+        # model.add(LSTM(units=64, return_sequences=True, kernel_initializer='random_uniform'))
+        # model.add(Dropout(rate=0.2))
+        #
+        # model.add(LSTM(units=64, return_sequences=False, kernel_initializer='random_uniform'))
+        # model.add(Dropout(rate=0.2))
 
         model.add(Dense(units=256))
         model.add(LeakyReLU(alpha=0.1))
@@ -102,7 +104,7 @@ if __name__ == '__main__':
         model = load_model(pre_trained_path)
 
     # add early stopping
-    es = EarlyStopping(monitor='val_loss', mode='min', verbose=1, patience=500)
+    es = EarlyStopping(monitor='val_loss', mode='min', verbose=1, patience=250)
     mc = ModelCheckpoint(
         'D:/trained_models/bestSoFar_thm_CRNN' + str(datetime.datetime.now()).replace(':', '-').replace(
             ' ', '_') + '.h5',

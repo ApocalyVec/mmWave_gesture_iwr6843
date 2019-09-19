@@ -357,7 +357,7 @@ def generate_train_val_ids(test_ratio, dataset):
 
 
 def thm_preprocess(paths, is_plot=False, augmentation=(),
-                   seeds=np.random.normal(0, 0.02, 5000), util_path='E:/temp'):
+                   seeds=np.random.normal(0, 0.02, 5000), util_path='E:/temp', buffer_size=1):
     # utility directory to save the pyplots
     radar_points_data_path, radar_voxel_data_path, videoData_path, figure_path, out_path, identity_string = paths
 
@@ -399,7 +399,6 @@ def thm_preprocess(paths, is_plot=False, augmentation=(),
     else:
         print('No augmentation applied')
 
-    buffer_size = 5
     buffer = []
 
     for i, (this_points_and_ts, this_voxel_and_ts) in enumerate(zip(radar_points, radar_voxel)):
@@ -467,20 +466,28 @@ def thm_preprocess(paths, is_plot=False, augmentation=(),
         else:
             produced_voxel = produce_voxel(this_points, isClipping=False)
 
-        if len(buffer) == buffer_size:
-            buffer = buffer[-buffer_size + 1:]
-            buffer.append(produced_voxel)
-
-            # print('saving npy...', end='')
+        if buffer_size == 1:
             this_path = os.path.join(dataset_path, str(this_timestamp.as_integer_ratio()[0]) + '_' + str(
                 this_timestamp.as_integer_ratio()[1]) + aug_string)
             if os.path.exists(this_path):
                 raise Exception('File ' + this_path + ' already exists. THIS SHOULD NEVER HAPPEN!')
-            np.save(this_path, np.asarray(buffer))
+            np.save(this_path, np.asarray(produced_voxel))  # just save the voxel
             print('saved to ' + this_path)
-
         else:
-            buffer.append(produced_voxel)
+            if len(buffer) == buffer_size:
+                buffer = buffer[-buffer_size + 1:]
+                buffer.append(produced_voxel)
+
+                # print('saving npy...', end='')
+                this_path = os.path.join(dataset_path, str(this_timestamp.as_integer_ratio()[0]) + '_' + str(
+                    this_timestamp.as_integer_ratio()[1]) + aug_string)
+                if os.path.exists(this_path):
+                    raise Exception('File ' + this_path + ' already exists. THIS SHOULD NEVER HAPPEN!')
+                np.save(this_path, np.asarray(buffer))
+                print('saved to ' + this_path)
+
+            else:
+                buffer.append(produced_voxel)
 
         # Plot the hand cluster #########################################
         # Combine the three images

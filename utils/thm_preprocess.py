@@ -15,11 +15,13 @@ specimen_list = [
 
 isDataGen = True
 
+timestep = 1
+
 for i, path in enumerate(specimen_list):
     # generate orignial data
     print('Processing specimen #' + str(i) + ' ' + str(path[0]) + '__________________________________')
-    thm_preprocess(path)
-    thm_preprocess(path, augmentation=['trans'])
+    thm_preprocess(path, buffer_size=timestep)
+    thm_preprocess(path, augmentation=['trans'], buffer_size=timestep)
 
 
 # just plot the thing
