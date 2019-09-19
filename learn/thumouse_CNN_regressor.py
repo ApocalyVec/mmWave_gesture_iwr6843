@@ -18,7 +18,7 @@ from utils.path_utils import generate_train_val_ids
 if __name__ == '__main__':
     is_use_pre_train = False
     epochs = 50000
-    timesteps = 5
+    # timesteps = 5
 
     pre_trained_path = 'D:/PycharmProjects/mmWave_gesture_iwr6843/models/thm_model.h5'
 
@@ -26,9 +26,9 @@ if __name__ == '__main__':
     # label_dict_path = 'E:/alldataset/thm_dataset_ts_1/thm_label_dict.p'
     # data_without_label = pickle.load(open('E:/alldataset/thm_dataset_ts_1/thm_data_without_label.p', 'rb'))
 
-    dataset_path = 'D:/alldataset/thm_dataset'
-    label_dict_path = 'D:/alldataset/thm_label_dict.p'
-    data_without_label = pickle.load(open('D:/alldataset/thm_data_without_label.p', 'rb'))
+    dataset_path = 'D:/alldataset/thm_dataset_ts_1/data'
+    label_dict_path = 'D:/alldataset/thm_dataset_ts_1/thm_label_dict.p'
+    data_without_label = pickle.load(open('D:/alldataset/thm_dataset_ts_1/thm_data_without_label.p', 'rb'))
     labels = pickle.load(open(label_dict_path, 'rb'))
 
     ## Generators
@@ -40,6 +40,7 @@ if __name__ == '__main__':
         if data.strip('.npy') not in data_without_label:
             X.append(np.load(os.path.join(dataset_path, data)))
             Y.append(labels[data.strip('.npy')])
+    print('Load Finished!')
 
     X = np.asarray(X)
     Y = np.asarray(Y)
@@ -47,10 +48,14 @@ if __name__ == '__main__':
     # minmax normallize y
     scaler = MinMaxScaler()
     Y = scaler.fit_transform(Y)
+    pickle.dump(scaler, open('D:/PycharmProjects/mmWave_gesture_iwr6843/models/thm_scaler.p', 'wb'))
 
+    print('Splitting test-train...')
     X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.20, random_state=3, shuffle=True)
 
     if not is_use_pre_train:
+        print('Building Model...')
+
         # CNN version ###############################################
         model = Sequential()
         model.add(Conv3D(filters=16, kernel_size=(3, 3, 3), data_format='channels_first', input_shape=(1, 25, 25, 25),
@@ -104,7 +109,7 @@ if __name__ == '__main__':
         model = load_model(pre_trained_path)
 
     # add early stopping
-    es = EarlyStopping(monitor='val_loss', mode='min', verbose=1, patience=250)
+    es = EarlyStopping(monitor='val_loss', mode='min', verbose=1, patience=50)
     mc = ModelCheckpoint(
         'D:/trained_models/bestSoFar_thm_CRNN' + str(datetime.datetime.now()).replace(':', '-').replace(
             ' ', '_') + '.h5',

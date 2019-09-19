@@ -6,9 +6,16 @@ from utils.path_utils import idp_preprocess, generate_path, thm_preprocess
 
 specimen_list = [
     generate_path('py', 0, mode='thm'), generate_path('py', 1, mode='thm'),
+    generate_path('py', 2, mode='thm'), generate_path('py', 3, mode='thm'),
+
     generate_path('ya', 0, mode='thm'), generate_path('ya', 1, mode='thm'),
+    generate_path('ya', 2, mode='thm'), generate_path('ya', 3, mode='thm'),
+
     generate_path('zr', 0, mode='thm'), generate_path('zr', 1, mode='thm'),
+    generate_path('zr', 2, mode='thm'),
+
     generate_path('zy', 0, mode='thm'), generate_path('zy', 1, mode='thm'),
+                                        generate_path('zy', 3, mode='thm')
 ]
 
 # use data augmentation
