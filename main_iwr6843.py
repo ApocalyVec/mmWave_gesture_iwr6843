@@ -75,14 +75,14 @@ class InputThread(Thread):
         input()
         is_collecting_started = True
 
+timelist = []
 
 class PredictionThread(Thread):
-    def __init__(self, thread_id, model_encoder_dict, timestep, thumouse_gui=None, mode=None):
+    def __init__(self, thread_id, model_encoder_dict, thumouse_gui=None, mode=None):
 
         Thread.__init__(self)
         self.thread_id = thread_id
         self.model_encoder_dict = model_encoder_dict
-        self.timestep = timestep
         # create a sequence buffer of shape: timestemp * shape of the data
         self.mode = mode
         if 'thm' in mode:
@@ -98,18 +98,21 @@ class PredictionThread(Thread):
         global is_point
 
         # general vars
-        buffer_size = self.timestep
+        buffer_size = 5
         sequence_buffer = np.zeros(tuple([buffer_size] + list(data_shape)))
+
+        # disable the failsafe
+        pyautogui.FAILSAFE = False
 
         # thumouse related vars
         thm_timestep = 1
 
-        x_factor = 1.0
+        x_factor = 5.0
         y_factor = 0.0
         z_factor = 1.0
 
-        ma_x = StreamingMovingAverage(window_size=1)
-        ma_y = StreamingMovingAverage(window_size=1)
+        ma_x = StreamingMovingAverage(window_size=5)
+        ma_y = StreamingMovingAverage(window_size=3)
 
         if 'thm' in self.mode:
             thm_model = self.model_encoder_dict['thm'][0]
@@ -120,63 +123,68 @@ class PredictionThread(Thread):
         if 'idp' in self.mode:
             idp_model = self.model_encoder_dict['idp'][0]
             idp_threshold = 0.75
-            sequence_buffer = np.zeros(tuple([buffer_size] + list(data_shape)))
             idp_pred_dict = {0: 'A', 1: 'D', 2: 'L', 3: 'M', 4: 'P', 5: 'nothing'}
 
         while True:
-            time.sleep(0.2)
-            # retrieve the data from deque
-            if main_stop_flag:
-                break
+            try:
+                # time.sleep(0.11)
+                start = time.time()
+                # retrieve the data from deque
+                if main_stop_flag:
+                    break
 
-            if len(data_q) != 0:
-                # ditch the tail, append to head
-                sequence_buffer = np.concatenate((sequence_buffer[1:], np.expand_dims(data_q.pop(), axis=0)))
+                if len(data_q) != 0:
+                    # ditch the tail, append to head
+                    this_data = data_q.pop()
+                    sequence_buffer = np.concatenate((sequence_buffer[1:], np.expand_dims(this_data, axis=0)))
 
-                if 'idp' in self.mode:
-                    pass
-                    # time.sleep(0.5)
-                    # idp_pre_result = idp_model.predict(x=sequence_buffer)
-                    # pre_argmax = np.argmax(idp_pre_result)
-                    # pre_amax = np.amax(idp_pre_result)
-                    #
-                    # if pre_amax > idp_threshold:  # a character is written
-                    #     if pre_argmax == 5:
-                    #         print('No One is Writing' + '    amax = ' + str(pre_amax))
-                    #     else:
-                    #         print('You just wrote: ' + idp_pred_dict[int(pre_argmax)] + '    amax = ' + str(pre_amax))
-                    #         # clear the buffer
-                    #         sequence_buffer = np.zeros(tuple([buffer_size] + list(data_shape)))
-                    # else:
-                    #     print('No writing, amax = ' + str(pre_amax))
+                    if 'idp' in self.mode:
+                        pass
+                        # time.sleep(0.5)
+                        # idp_pre_result = idp_model.predict(x=sequence_buffer)
+                        # pre_argmax = np.argmax(idp_pre_result)
+                        # pre_amax = np.amax(idp_pre_result)
+                        #
+                        # if pre_amax > idp_threshold:  # a character is written
+                        #     if pre_argmax == 5:
+                        #         print('No One is Writing' + '    amax = ' + str(pre_amax))
+                        #     else:
+                        #         print('You just wrote: ' + idp_pred_dict[int(pre_argmax)] + '    amax = ' + str(pre_amax))
+                        #         # clear the buffer
+                        #         sequence_buffer = np.zeros(tuple([buffer_size] + list(data_shape)))
+                        # else:
+                        #     print('No writing, amax = ' + str(pre_amax))
 
-                if 'thm' in self.mode:
-                    # if not np.any(sequence_buffer[-1]):
-                    if thm_timestep != 1:
-                        thm_pred_result = thm_model.predict(x=np.expand_dims(sequence_buffer[-thm_timestep:], axis=0))
-                    else:
-                        thm_pred_result = thm_model.predict(x=np.expand_dims(sequence_buffer[-1], axis=0))
+                    if 'thm' in self.mode:
+                        # if not np.any(sequence_buffer[-1]):
+                        if thm_timestep != 1:
+                            thm_pred_result = thm_model.predict(x=np.expand_dims(sequence_buffer[-thm_timestep:], axis=0))
+                        else:
+                            thm_pred_result = thm_model.predict(x=np.expand_dims(this_data, axis=0))
 
-                    # expand dim for single sample batch
-                    decoded_result = thm_decoder.inverse_transform(thm_pred_result)
+                        # expand dim for single sample batch
+                        decoded_result = thm_decoder.inverse_transform(thm_pred_result)
 
-                    delta_x = decoded_result[0][0] * x_factor
-                    delta_y = decoded_result[0][1] * y_factor
-                    # delta_z = decoded_result[0][2] * z_factor
+                        delta_x = decoded_result[0][0] * x_factor
+                        delta_y = decoded_result[0][1] * y_factor
+                        # delta_z = decoded_result[0][2] * z_factor
 
-                    delta_x_ma = ma_x.process(delta_x)
-                    delta_y_ma = ma_y.process(delta_y)
+                        delta_x_ma = ma_x.process(delta_x)
+                        delta_y_ma = ma_y.process(delta_y)
 
-                    # mouse_x = min(max(mouse_x + delta_x, 0), gui_wid_hei[0])
-                    # mouse_y = min(max(mouse_y + delta_y, 0), gui_wid_hei[1])
+                        # mouse_x = min(max(mouse_x + delta_x, 0), gui_wid_hei[0])
+                        # mouse_y = min(max(mouse_y + delta_y, 0), gui_wid_hei[1])
 
-                    # move the actual mouse
-                    pyautogui.moveRel(delta_x_ma, delta_y_ma, duration=.1)
-                    # if self.thumouse_gui is not None:
-                        # self.thumouse_gui.setData([mouse_x], [mouse_y])
+                        # move the actual mouse
+                        pyautogui.moveRel(delta_x_ma, delta_y_ma, duration=.1)
+                        # if self.thumouse_gui is not None:
+                            # self.thumouse_gui.setData([mouse_x], [mouse_y])
 
-                    print(str(delta_x_ma) + '       ' + str(delta_y_ma) + '     ' + str(len(data_q)))
+                        print(str(delta_x_ma) + '       ' + str(delta_y_ma) + '     ' + str(len(data_q)))
 
+                timelist.append(time.time() - start)
+            except KeyboardInterrupt:
+                return
 
 def load_model(model_path, encoder=None):
     model = NeuralNetwork()
@@ -198,12 +206,11 @@ def main():
     global is_point
 
     if is_predict:
-        timestep = 100
         # my_mode = ['thm', 'idp']
         my_mode = ['thm']
 
-        thm_model_path = 'D:/PycharmProjects/mmWave_gesture_iwr6843/models/thm_model.h5'
-        thm_scaler_path = 'D:/PycharmProjects/mmWave_gesture_iwr6843/models/scalers/thm_scaler.p'
+        thm_model_path = 'D:/PycharmProjects/mmWave_gesture_iwr6843/models/thm_xyz_cnn/model.h5'
+        thm_scaler_path = 'D:/PycharmProjects/mmWave_gesture_iwr6843/models/thm_xyz_cnn/scaler.p'
         # idp_model_path = 'D:/code/DoubleMU/models/palmPad_model.h5'
 
         model_dict = {'thm': load_model(thm_model_path,
@@ -211,8 +218,7 @@ def main():
                       # 'idp': load_model(idp_model_path,
                       #                   encoder=onehot_decoder())
                       }
-        pred_thread = PredictionThread(1, model_encoder_dict=model_dict,
-                                       timestep=timestep, thumouse_gui=thumouse_graph, mode=my_mode)
+        pred_thread = PredictionThread(1, model_encoder_dict=model_dict, thumouse_gui=thumouse_graph, mode=my_mode)
         pred_thread.start()
 
     # start input thread
