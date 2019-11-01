@@ -57,6 +57,10 @@ def idp_preprocess(paths, is_plot=False, augmentation=(),
     video_frame_list = os.listdir(videoData_path)
     video_frame_timestamps = list(map(lambda x: float(x.strip('.jpg')), video_frame_list))
 
+    sample_per_session = 20
+    interval_duration = 4.0
+    sample_per_sec = 17
+
     style.use('fivethirtyeight')
     white_color = 'rgb(255, 255, 255)'
     black_color = 'rgb(0, 0, 0)'
@@ -86,8 +90,6 @@ def idp_preprocess(paths, is_plot=False, augmentation=(),
     interval_voxel_list = []
     this_voxel_list = []
 
-    interval_duration = 4.0
-    sample_per_sec = 20
     sample_per_interval = int(interval_duration * sample_per_sec)
 
     aug_string = ''
@@ -99,16 +101,16 @@ def idp_preprocess(paths, is_plot=False, augmentation=(),
         print('No augmentation applied')
 
     print('Label Cheat-sheet:')
-    print('0 for DEL')
-    print('1 for E')
-    print('2 for H')
-    print('3 for L')
-    print('4 for O')
-    # print('5 for O')
-    # print('6 for R')
-    # print('7 for W')
-    # print('8 for SPC')
-    # print('9 for EXC')
+    print('0 for 0')
+    print('1 for 1')
+    print('2 for 2')
+    print('3 for 3')
+    print('4 for 4')
+    print('5 for 5')
+    print('6 for 6')
+    print('7 for 7')
+    print('8 for 8')
+    print('9 for 9')
 
     label_array = []
     this_label = 0
@@ -233,24 +235,20 @@ def idp_preprocess(paths, is_plot=False, augmentation=(),
         if (this_timestamp - starting_timestamp) >= interval_duration or i == len(radar_voxel)-1:
             # increment the timestamp and interval index
             starting_timestamp = starting_timestamp + interval_duration
+            this_label = math.floor(interval_index / 2)
             interval_index = interval_index + 1
 
             # decide the label
-            inter_arg = 10
-            if interval_index % inter_arg == 1 or interval_index % inter_arg == 2:
-                # continue
-                this_label = 0  # for label DEL
-            elif interval_index % inter_arg == 3 or interval_index % inter_arg == 4:
-                this_label = 1  # for label D
-            elif interval_index % inter_arg == 5 or interval_index % inter_arg == 6:
-                this_label = 2  # for label E
-            elif interval_index % inter_arg == 7 or interval_index % inter_arg == 8:
-                # continue
-                this_label = 3  # for label H
-            elif interval_index % inter_arg == 9 or interval_index % inter_arg == 0:
-                # continue
-                this_label = 4  # for label L
-
+            # if interval_index % inter_arg == 1 or interval_index % inter_arg == 2:
+            #     this_label = 0  # for label DEL
+            # elif interval_index % inter_arg == 3 or interval_index % inter_arg == 4:
+            #     this_label = 1  # for label D
+            # elif interval_index % inter_arg == 5 or interval_index % inter_arg == 6:
+            #     this_label = 2  # for label E
+            # elif interval_index % inter_arg == 7 or interval_index % inter_arg == 8:
+            #     this_label = 3  # for label H
+            # elif interval_index % inter_arg == 9 or interval_index % inter_arg == 0:
+            #     this_label = 4  # for label L
             # elif interval_index % inter_arg == 11 or interval_index % inter_arg == 12:
             #     this_label = 5  # for label O
             # elif interval_index % inter_arg == 13 or interval_index % inter_arg == 14:
@@ -279,10 +277,10 @@ def idp_preprocess(paths, is_plot=False, augmentation=(),
         # end of end of interval processing
 
     # start of post processing ##########################################################################
-    label_array = np.asarray(label_array)[:30]
-    interval_volume_array = np.asarray(interval_voxel_list)[:30]
+    label_array = np.asarray(label_array)[:sample_per_session]
+    interval_volume_array = np.asarray(interval_voxel_list)[:sample_per_session]
 
-    assert len(interval_volume_array) == len(label_array) == 30
+    assert len(interval_volume_array) == len(label_array) == sample_per_session
 
     interval_mean = np.mean(interval_volume_array)
     print('Interval mean is ' + str(interval_mean))

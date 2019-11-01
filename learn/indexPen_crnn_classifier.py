@@ -22,8 +22,12 @@ from utils.path_utils import generate_train_val_ids
 pre_trained_path = 'D:/code/DoubleMU/models/palmPad_model.h5'
 epochs = 50000
 is_use_pre_train = False
-num_classes = 4
-timesteps = 80
+num_classes = 10
+
+interval_duration = 4
+sample_per_sec = 17
+
+timesteps = interval_duration * sample_per_sec
 
 if __name__ == '__main__':
     label_dict_path = 'D:/alldataset/idp_label_dict.p'
@@ -36,9 +40,9 @@ if __name__ == '__main__':
     # for i, data in enumerate(sorted(os.listdir(dataset_path), key=lambda x: int(x.strip('.npy').split('_')[2]))):
     for i, data in enumerate(os.listdir(dataset_path)):
         print('Loading ' + str(i) + ' of ' + str(len(os.listdir(dataset_path))))
-        if labels[os.path.splitext(data)[0]] != 4: # this is not an 'O'
-            X.append(np.load(os.path.join(dataset_path, data)))
-            Y.append(labels[os.path.splitext(data)[0]])
+        # if labels[os.path.splitext(data)[0]] != 4: # this is not an 'O'
+        X.append(np.load(os.path.join(dataset_path, data)))
+        Y.append(labels[os.path.splitext(data)[0]])
     X = np.asarray(X)
     Y = np.asarray(Y)
 
