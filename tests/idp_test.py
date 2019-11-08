@@ -15,37 +15,24 @@ from sklearn.preprocessing import OneHotEncoder
 from utils.data_utils import plot_confusion_matrix
 from utils.path_utils import generate_train_val_ids
 
-idp_model_path = 'D:/trained_models/bestSoFar_indexPen_CRNN2019-09-10_13-57-36.143313.h5'
+idp_model_path = 'D:/trained_models/bestSoFar_indexPen_CRNN2019-11-01_19-29-25.370584.h5'
 idp_model = load_model(idp_model_path)
 
-labels = pickle.load(open('D:/alldataset/idp_label_dict.p', 'rb'))
 
+label_dict_path = 'D:/alldataset/idp_label_dict.p'
 dataset_path = 'D:/alldataset/idp_dataset'
 
-# partition = generate_train_val_ids(0.1, dataset_path=dataset_path)
-#
-# x_test = []
-# y_test = []
-#
-# sample = None
-#
-# for i, sample_path in enumerate(partition['train']):
-#     print('Processing ' + str(i) + ' of ' + str(len(os.listdir(dataset_path))))
-#
-#     if sample is not None:
-#         a = np.all(sample == np.load(os.path.join(dataset_path, sample_path + '.npy')))
-#         assert not a
-#
-#     sample = (np.load(os.path.join(dataset_path, sample_path + '.npy')))
-#     x_test.append(sample)
-#
-#     y_test.append(label_dict[os.path.splitext(sample_path)[0]])
+labels = pickle.load(open(label_dict_path, 'rb'))
 
+classifying_labels = list(range(10))
 
 X = []
 Y = []
 # for i, data in enumerate(sorted(os.listdir(dataset_path), key=lambda x: int(x.strip('.npy').split('_')[2]))):
 for i, data in enumerate(os.listdir(dataset_path)):
+    lb = labels[os.path.splitext(data)[0]]
+    # if lb in classifying_labels:  # this is not an 'O'
+    print('Loading ' + str(i) + ' of ' + str(len(os.listdir(dataset_path))))
     X.append(np.load(os.path.join(dataset_path, data)))
     Y.append(labels[os.path.splitext(data)[0]])
 X = np.asarray(X)
@@ -58,7 +45,7 @@ X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.20, random
 
 y_pred = idp_model.predict(np.asarray(X_train), batch_size=8)
 
-plot_confusion_matrix(Y_train.argmax(axis=1), y_pred.argmax(axis=1), classes=np.asarray(['DEL', 'E', 'H', 'L', 'O']), title='IndexPen Confusion Matrix')
+plot_confusion_matrix(Y_train.argmax(axis=1), y_pred.argmax(axis=1), classes=np.asarray(classifying_labels), title='IndexPen Confusion Matrix')
 plt.show()
 
 # correct_mask = (y_pred != y_test)
