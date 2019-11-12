@@ -57,9 +57,9 @@ def idp_preprocess(paths, is_plot=False, augmentation=(),
     video_frame_list = os.listdir(videoData_path)
     video_frame_timestamps = list(map(lambda x: float(x.strip('.jpg')), video_frame_list))
 
-    sample_per_session = 20
+    samples_per_session = [20, 40]
     interval_duration = 4.0
-    sample_per_sec = 17
+    sample_per_sec = 20
 
     style.use('fivethirtyeight')
     white_color = 'rgb(255, 255, 255)'
@@ -277,10 +277,12 @@ def idp_preprocess(paths, is_plot=False, augmentation=(),
         # end of end of interval processing
 
     # start of post processing ##########################################################################
-    label_array = np.asarray(label_array)[:sample_per_session]
-    interval_volume_array = np.asarray(interval_voxel_list)[:sample_per_session]
+    sps = min(samples_per_session, key=lambda x:abs(x-len(label_array)))
 
-    assert len(interval_volume_array) == len(label_array) == sample_per_session
+    label_array = np.asarray(label_array)[:sps]
+    interval_volume_array = np.asarray(interval_voxel_list)[:sps]
+
+    assert len(interval_volume_array) == len(label_array) and len(label_array) in samples_per_session
 
     interval_mean = np.mean(interval_volume_array)
     print('Interval mean is ' + str(interval_mean))

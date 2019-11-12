@@ -15,7 +15,7 @@ from sklearn.preprocessing import OneHotEncoder
 from utils.data_utils import plot_confusion_matrix
 from utils.path_utils import generate_train_val_ids
 
-idp_model_path = 'D:/trained_models/bestSoFar_indexPen_CRNN2019-11-01_19-29-25.370584.h5'
+idp_model_path = 'D:/trained_models/11_12_19.h5'
 idp_model = load_model(idp_model_path)
 
 
@@ -24,17 +24,17 @@ dataset_path = 'D:/alldataset/idp_dataset'
 
 labels = pickle.load(open(label_dict_path, 'rb'))
 
-classifying_labels = list(range(10))
+classifying_labels = list(range(5))
 
 X = []
 Y = []
 # for i, data in enumerate(sorted(os.listdir(dataset_path), key=lambda x: int(x.strip('.npy').split('_')[2]))):
 for i, data in enumerate(os.listdir(dataset_path)):
     lb = labels[os.path.splitext(data)[0]]
-    # if lb in classifying_labels:  # this is not an 'O'
-    print('Loading ' + str(i) + ' of ' + str(len(os.listdir(dataset_path))))
-    X.append(np.load(os.path.join(dataset_path, data)))
-    Y.append(labels[os.path.splitext(data)[0]])
+    if lb in classifying_labels:
+        print('Loading ' + str(i) + ' of ' + str(len(os.listdir(dataset_path))))
+        X.append(np.load(os.path.join(dataset_path, data)))
+        Y.append(labels[os.path.splitext(data)[0]])
 X = np.asarray(X)
 Y = np.asarray(Y)
 
@@ -43,9 +43,9 @@ Y = encoder.fit_transform(np.expand_dims(Y, axis=1)).toarray()
 
 X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.20, random_state=3, shuffle=True)
 
-y_pred = idp_model.predict(np.asarray(X_train), batch_size=8)
+y_pred = idp_model.predict(np.asarray(X_test), batch_size=8)
 
-plot_confusion_matrix(Y_train.argmax(axis=1), y_pred.argmax(axis=1), classes=np.asarray(classifying_labels), title='IndexPen Confusion Matrix')
+plot_confusion_matrix(Y_test.argmax(axis=1), y_pred.argmax(axis=1), classes=np.asarray(classifying_labels), title='IndexPen Confusion Matrix')
 plt.show()
 
 # correct_mask = (y_pred != y_test)

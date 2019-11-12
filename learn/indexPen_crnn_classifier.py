@@ -27,13 +27,13 @@ classifying_labels = [0, 1, 2, 3, 4]
 num_classes = len(classifying_labels)
 
 interval_duration = 4
-sample_per_sec = 17
+sample_per_sec = 20
 
 timesteps = interval_duration * sample_per_sec
 
 if __name__ == '__main__':
-    label_dict_path = 'D:/alldataset/idp_label_dict.p'
-    dataset_path = 'D:/alldataset/idp_dataset'
+    dataset_path = 'E:/alldataset/idp_dataset'
+    label_dict_path = 'E:/alldataset/idp_label_dict.p'
     labels = pickle.load(open(label_dict_path, 'rb'))
 
     ## Generators
