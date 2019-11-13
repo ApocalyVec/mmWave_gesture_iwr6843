@@ -13,11 +13,17 @@ from keras.engine.saving import load_model
 from learn.classes import indexPenDataGen
 from utils.path_utils import generate_train_val_ids
 
-pre_trained_path = 'D:/code/DoubleMU/models/palmPad_model.h5'
-epochs = 5000
-is_use_pre_train = False
-num_classes = 5
-timesteps = 80
+pre_trained_path = 'D:/trained_models/11_12_19.h5'
+epochs = 50000
+is_use_pre_train = True
+
+classifying_labels = [0, 1, 2, 3, 4]
+num_classes = len(classifying_labels)
+
+interval_duration = 4
+sample_per_sec = 20
+
+timesteps = interval_duration * sample_per_sec
 
 if __name__ == '__main__':
     dataGenParams = {'dim': (timesteps, 1, 25, 25, 25),
@@ -25,13 +31,12 @@ if __name__ == '__main__':
                      'n_classes': num_classes,
                      'shuffle': True}
 
-    label_dict_path = 'D:/indexPen/labels/label_dict.p'
-    dataset_path = 'D:/indexPen/dataset'
-    partition = generate_train_val_ids(0.1, dataset_path=dataset_path)
+    dataset_path = 'E:/alldataset/idp_dataset'
+    label_dict_path = 'E:/alldataset/idp_label_dict.p'
+    partition = generate_train_val_ids(0.2, dataset_path=dataset_path)
     labels = pickle.load(open(label_dict_path, 'rb'))
 
     ## Generators
-
     training_gen = indexPenDataGen(partition['train'], labels, dataset_path=dataset_path, **dataGenParams)
     validation_gen = indexPenDataGen(partition['validation'], labels, dataset_path=dataset_path, **dataGenParams)
 
@@ -77,14 +82,14 @@ if __name__ == '__main__':
         classifier = load_model(pre_trained_path)
 
     # add early stopping
-    es = EarlyStopping(monitor='val_loss', mode='min', verbose=1, patience=250)
+    es = EarlyStopping(monitor='val_loss', mode='min', verbose=1, patience=1000)
     mc = ModelCheckpoint(
         'D:/trained_models/bestSoFar_indexPen_CRNN' + str(datetime.datetime.now()).replace(':', '-').replace(' ',
                                                                                                              '_') + '.h5',
         monitor='val_acc', mode='max', verbose=1, save_best_only=True)
 
     history = classifier.fit_generator(generator=training_gen, validation_data=validation_gen, use_multiprocessing=True,
-                                       workers=1, shuffle=True, epochs=epochs, callbacks=[es, mc])
+                                       workers=6, shuffle=True, epochs=epochs, callbacks=[es, mc])
 
     import matplotlib.pyplot as plt
 

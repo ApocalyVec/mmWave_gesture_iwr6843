@@ -214,4 +214,4 @@ class StreamingMovingAverage:
         self.sum += value
         if len(self.values) > self.window_size:
             self.sum -= self.values.pop(0)
-        return float(self.sum) / len(self.values)
+        return float(self.sum) + value / len(self.values)
