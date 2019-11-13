@@ -321,14 +321,14 @@ def generate_path(subject_name: str, case_index: int, mode: str) -> tuple:
     f_dir = 'f_data_' + mode + '_' + identity_string
     v_dir = 'v_data_' + mode + '_' + identity_string
 
-    root_path = 'E:/alldata_' + mode
+    root_path = 'F:/alldata_' + mode
 
     radar_point_data_path = os.path.join(root_path, f_dir, 'f_data_points.p')
     radar_voxel_data_path = os.path.join(root_path, f_dir, 'f_data_voxel.p')
 
     videoData_path = os.path.join(root_path, v_dir, 'cam2')
-    mergedImg_path = os.path.join('E:/allfig_' + mode, identity_string)
-    out_path = os.path.join('E:/alldataset', mode + '_' + identity_string)
+    mergedImg_path = os.path.join('F:/allfig_' + mode, identity_string)
+    out_path = os.path.join('F:/alldataset', mode + '_' + identity_string)
 
     return radar_point_data_path, radar_voxel_data_path, videoData_path, mergedImg_path, out_path, identity_string
 
@@ -367,7 +367,7 @@ def thm_preprocess(paths, is_plot=False, augmentation=(),
     video_frame_list = os.listdir(videoData_path)
     video_frame_timestamps = list(map(lambda x: float(x.strip('.jpg')), video_frame_list))
 
-    dataset_path = 'E:/alldataset/thm_dataset'
+    dataset_path = 'D:/alldataset/thm_dataset_ts_5/data'
 
     style.use('fivethirtyeight')
     white_color = 'rgb(255, 255, 255)'

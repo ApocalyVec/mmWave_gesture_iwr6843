@@ -3,8 +3,8 @@ import os
 
 from utils.data_utils import merge_dict
 
-pred_dir = 'D:/alldataset/thm_dataset_ts_1/label_dicts'
-dataset_dir = 'D:/alldataset/thm_dataset_ts_1/data'
+pred_dir = 'D:/alldataset/thm_dataset_ts_5/label_dicts'
+dataset_dir = 'D:/alldataset/thm_dataset_ts_5/data'
 
 pred_file_list = os.listdir(pred_dir)
 
@@ -20,8 +20,8 @@ result_dict = dict()
 
 for key, value in merged_pred_dict.items():
     assert len(value) == 6
-    result_dict[key] = value[3:]
-    result_dict[key + '_trans'] = value[3:]
+    result_dict[key] = value[3:5]
+    result_dict[key + '_trans'] = value[3:5]
 
-pickle.dump(data_without_label, open('D:/alldataset/thm_dataset_ts_1/thm_data_without_label.p', 'wb'))
-pickle.dump(result_dict, open('D:/alldataset/thm_dataset_ts_1/thm_label_dict.p', 'wb'))
+pickle.dump(data_without_label, open('D:/alldataset/thm_dataset_ts_5/thm_data_without_label.p', 'wb'))
+pickle.dump(result_dict, open('D:/alldataset/thm_dataset_ts_5/thm_label_dict.p', 'wb'))
