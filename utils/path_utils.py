@@ -290,8 +290,8 @@ def idp_preprocess(paths, is_plot=False, augmentation=(),
 
     # validate the output shapes
 
-    dataset_path = 'E:/alldataset/idp_dataset'
-    label_dict_path = 'E:/alldataset/idp_label_dict.p'
+    dataset_path = 'F:/alldataset/idp_dataset'
+    label_dict_path = 'F:/alldataset/idp_label_dict.p'
 
     print('Saving chunks to ' + dataset_path + '...')
 
