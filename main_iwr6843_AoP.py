@@ -15,14 +15,13 @@ from utils.data_utils import produce_voxel, StreamingMovingAverage
 import numpy as np
 import pyautogui
 
-
 data_q = collections.deque(maxlen=1)
 data_list = []
 processed_data_list = []
 data_shape = (1, 25, 25, 25)
 
 # set up graph
-# START QtAPP for the plot
+# START QtAPP for the plot；
 app = QtGui.QApplication([])
 thm_gui_size = 640, 480
 
@@ -36,7 +35,7 @@ fig_z_y.setLabel('left', text='Y position (m)')
 fig_z_y.setLabel('bottom', text='X position (m)')
 xy_graph = fig_z_y.plot([], [], pen=None, symbol='o')
 
-# set the zv plot
+# set the zv plot'
 fig_z_v = win.addPlot()
 fig_z_v.setXRange(-1, 1)
 fig_z_v.setYRange(-1, 1)
@@ -58,7 +57,7 @@ root_dn = 'data/f_data-' + str(today).replace(':', '-').replace(' ', '_')
 
 # Model Globals
 is_simulate = False
-is_predict = False
+is_predict = True
 
 if is_predict:
     from utils.model_wrapper import NeuralNetwork, onehot_decoder
@@ -75,7 +74,9 @@ class InputThread(Thread):
         input()
         is_collecting_started = True
 
+
 timelist = []
+
 
 class PredictionThread(Thread):
     def __init__(self, thread_id, model_encoder_dict, thumouse_gui=None, mode=None):
@@ -158,7 +159,8 @@ class PredictionThread(Thread):
                     if 'thm' in self.mode:
                         # if not np.any(sequence_buffer[-1]):
                         if thm_timestep != 1:
-                            thm_pred_result = thm_model.predict(x=np.expand_dims(sequence_buffer[-thm_timestep:], axis=0))
+                            thm_pred_result = thm_model.predict(
+                                x=np.expand_dims(sequence_buffer[-thm_timestep:], axis=0))
                         else:
                             thm_pred_result = thm_model.predict(x=np.expand_dims(this_data, axis=0))
 
@@ -178,13 +180,14 @@ class PredictionThread(Thread):
                         # move the actual mouse
                         pyautogui.moveRel(delta_x_ma, delta_y_ma, duration=.1)
                         # if self.thumouse_gui is not None:
-                            # self.thumouse_gui.setData([mouse_x], [mouse_y])
+                        # self.thumouse_gui.setData([mouse_x], [mouse_y])
 
                         print(str(delta_x_ma) + '       ' + str(delta_y_ma) + '     ' + str(len(data_q)))
 
                 timelist.append(time.time() - start)
             except KeyboardInterrupt:
                 return
+
 
 def load_model(model_path, encoder=None):
     model = NeuralNetwork()
@@ -206,18 +209,19 @@ def main():
     global is_point
 
     if is_predict:
-        # my_mode = ['thm', 'idp']
         my_mode = ['thm']
 
         thm_model_path = 'D:/PycharmProjects/mmWave_gesture_iwr6843/models/thm_xyz_cnn/model.h5'
         thm_scaler_path = 'D:/PycharmProjects/mmWave_gesture_iwr6843/models/thm_xyz_cnn/scaler.p'
         # idp_model_path = 'D:/code/DoubleMU/models/palmPad_model.h5'
 
-        model_dict = {'thm': load_model(thm_model_path,
-                                        encoder=thm_scaler_path),
-                      # 'idp': load_model(idp_model_path,
-                      #                   encoder=onehot_decoder())
-                      }
+        model_dict = {
+            # 'thm': load_model(thm_model_path,
+            #                   encoder=thm_scaler_path),
+            'thm': load_model(thm_model_path),
+            # 'idp': load_model(idp_model_path,
+            #                   encoder=onehot_decoder())
+        }
         pred_thread = PredictionThread(1, model_encoder_dict=model_dict, thumouse_gui=thumouse_graph, mode=my_mode)
         pred_thread.start()
 
@@ -225,11 +229,11 @@ def main():
     # input_thread = InputThread(1)
     # input_thread.start()
 
-    configFileName = 'profiles/profile_further_tuned.cfg'
-    dataPortName = 'COM9'
-    userPortName = 'COM8'
+    configFileName = 'profiles/20fps_04RR_14VR_12CT_8DT.cfg'
+    dataPortName = 'COM14'
+    userPortName = 'COM3'
 
-    # open the serial port to the radar
+    # open the serial por20fpst to the radar
     user_port, data_port = serial_iwr6843.serialConfig(configFileName, dataPortName=dataPortName,
                                                        userPortName=userPortName)
     serial_iwr6843.clear_serial_buffer(user_port, data_port)
@@ -291,10 +295,9 @@ def main():
     main_stop_flag = True
     if is_predict:
         pred_thread.join()
-
-    # do you wish to save the recorded frames?
     is_save = input('do you wish to save the recorded frames? [y/n]')
 
+    # do you wish to save the recorded frames?
     if is_save == 'y':
         os.mkdir(root_dn)
         # save the points file

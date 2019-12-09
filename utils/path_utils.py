@@ -321,14 +321,14 @@ def generate_path(subject_name: str, case_index: int, mode: str) -> tuple:
     f_dir = 'f_data_' + mode + '_' + identity_string
     v_dir = 'v_data_' + mode + '_' + identity_string
 
-    root_path = 'F:/alldata_' + mode
+    root_path = 'E:/alldata_' + mode
 
     radar_point_data_path = os.path.join(root_path, f_dir, 'f_data_points.p')
     radar_voxel_data_path = os.path.join(root_path, f_dir, 'f_data_voxel.p')
 
     videoData_path = os.path.join(root_path, v_dir, 'cam2')
-    mergedImg_path = os.path.join('F:/allfig_' + mode, identity_string)
-    out_path = os.path.join('F:/alldataset', mode + '_' + identity_string)
+    mergedImg_path = os.path.join('E:/allfig_' + mode, identity_string)
+    out_path = os.path.join('E:/alldataset', mode + '_' + identity_string)
 
     return radar_point_data_path, radar_voxel_data_path, videoData_path, mergedImg_path, out_path, identity_string
 
