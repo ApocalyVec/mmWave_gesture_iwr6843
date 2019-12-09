@@ -23,7 +23,7 @@ pre_trained_path = 'D:/code/DoubleMU/models/palmPad_model.h5'
 epochs = 50000
 is_use_pre_train = False
 
-classifying_labels = [0, 1, 2, 3, 4]
+classifying_labels = [1, 2, 3, 4, 5]
 num_classes = len(classifying_labels)
 
 interval_duration = 4
@@ -32,8 +32,8 @@ sample_per_sec = 20
 timesteps = interval_duration * sample_per_sec
 
 if __name__ == '__main__':
-    dataset_path = 'E:/alldataset/idp_dataset'
-    label_dict_path = 'E:/alldataset/idp_label_dict.p'
+    dataset_path = 'F:/alldataset/idp_dataset'
+    label_dict_path = 'F:/alldataset/idp_label_dict.p'
     labels = pickle.load(open(label_dict_path, 'rb'))
 
     ## Generators

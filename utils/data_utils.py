@@ -215,3 +215,28 @@ class StreamingMovingAverage:
         if len(self.values) > self.window_size:
             self.sum -= self.values.pop(0)
         return float(self.sum) + value / len(self.values)
+
+
+def parse_deltalize_recording(file: str) -> dict:
+    recording_list = list()
+    xyz_array = list()
+    lines = list()
+    with open(file) as fp:  # first buffer all the lines so that the buffered lines supports indexing
+        for l in fp:
+            lines.append(l)
+
+    for i, buffered_l in enumerate(lines):
+        timestamp, x, y, z = [float(x) for x in buffered_l.split(',')]
+
+        if i == 0:  # if this is the first frame
+            x, y, z = 0, 0, 0
+        else:
+            # process delta
+            prev_x, prev_y, prev_z = [float(x) for x in lines[i-1].split(',')][1:]
+            x, y, z = x - prev_x, y - prev_y, z-prev_z
+
+        xyz_array.append([x, y, z])
+        recording_list.append([timestamp, (x, y, z)])
+
+    assert len(xyz_array) == len(recording_list)
+    return dict(recording_list), np.asarray(xyz_array)

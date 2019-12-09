@@ -20,7 +20,7 @@ import pandas as pd
 
 from sklearn.preprocessing import MinMaxScaler
 
-from utils.data_utils import produce_voxel, snapPointsToVolume
+from utils.data_utils import produce_voxel, snapPointsToVolume, parse_deltalize_recording, merge_dict
 from utils.transformation import translate, sphere_search, rotateZ, rotateY, rotateX, scale
 
 
@@ -290,8 +290,8 @@ def idp_preprocess(paths, is_plot=False, augmentation=(),
 
     # validate the output shapes
 
-    dataset_path = 'E:/alldataset/idp_dataset'
-    label_dict_path = 'E:/alldataset/idp_label_dict.p'
+    dataset_path = 'F:/alldataset/idp_dataset'
+    label_dict_path = 'F:/alldataset/idp_label_dict.p'
 
     print('Saving chunks to ' + dataset_path + '...')
 
@@ -331,6 +331,28 @@ def generate_path(subject_name: str, case_index: int, mode: str) -> tuple:
     out_path = os.path.join('E:/alldataset', mode + '_' + identity_string)
 
     return radar_point_data_path, radar_voxel_data_path, videoData_path, mergedImg_path, out_path, identity_string
+
+
+def generate_path_thm_leap(subject_name: str, case_index: int) -> tuple:
+
+    identity_string = subject_name + '_' + str(case_index)
+    f_dir = 'f_data_thm_' + identity_string
+    v_file = 'recording_' + identity_string + '.txt'
+
+    f_data_root = 'D:/data_thm_leap/data'
+    recording_data_root = 'D:/data_thm_leap/recording'
+
+    radar_point_data_path = os.path.join(f_data_root, f_dir, 'f_data_points.p')
+    radar_voxel_data_path = os.path.join(f_data_root, f_dir, 'f_data_voxel.p')
+
+    recording_path = os.path.join(recording_data_root, v_file)
+
+    assert os.path.exists(radar_point_data_path)
+    assert os.path.exists(radar_voxel_data_path)
+    assert os.path.exists(recording_path)
+
+    return radar_point_data_path, radar_voxel_data_path, recording_path, identity_string
+
 
 def generate_train_val_ids(test_ratio, dataset):
 
@@ -539,3 +561,92 @@ def thm_preprocess(paths, is_plot=False, augmentation=(),
 
     # validate the output shapes
 
+
+def thm_leap_preprocess(paths, dataset_path, label_path, is_plot=False, augmentation=(),
+                   seeds=np.random.normal(0, 0.02, 5000), buffer_size=1):
+    # utility directory to save the pyplots
+    radar_points_data_path, radar_voxel_data_path, recording_path, identity_string= paths
+
+    radar_points = pickle.load(open(radar_points_data_path, 'rb'))
+    radar_voxel = pickle.load(open(radar_voxel_data_path, 'rb'))
+    # Retrieve the first timestamp
+    assert [x[0] for x in radar_points] == [x[0] for x in radar_voxel]
+
+    interval_index = 0
+
+    aug_string = ''
+    if augmentation:
+        print('Use augmentation: ' + str(augmentation))
+        for aug in augmentation:
+            aug_string += '_' + aug
+    else:
+        print('No augmentation applied')
+
+    # process recordings
+    recording_dict = parse_deltalize_recording(recording_path)[0]
+    recording_timestamps = list(recording_dict.keys())
+
+    labels = dict()
+    buffer = []
+    timestamp_diff_list = []
+    for i, (this_ts_points, this_ts_voxel) in enumerate(zip(radar_points, radar_voxel)):
+        # retrieve the timestamp making sure the data is synced
+        assert this_ts_points[0] == this_ts_voxel[0]
+        this_timestamp = this_ts_points[0]
+        this_points = this_ts_points[1]
+        this_voxel = this_ts_voxel[1]
+        this_identifier = str(this_timestamp.as_integer_ratio()[0]) + '_' + str(
+                    this_timestamp.as_integer_ratio()[1]) + aug_string
+        this_path = os.path.join(dataset_path, this_identifier)
+        if os.path.exists(this_path):
+            raise Exception('File ' + this_path + ' already exists. THIS SHOULD NEVER HAPPEN!')
+        print('Processing ' + str(i + 1) + ' of ' + str(len(radar_points)) + ', items in buffer = ' + str(len(buffer)))
+
+        # find label
+        closest_recording_timestamp = min(recording_timestamps, key=lambda x: abs(x - this_timestamp))
+        timestamp_diff_list.append(closest_recording_timestamp - this_timestamp)
+
+        # apply augmentation to hand cluster #############################
+        if len(this_points) > 0:
+            if 'trans' in augmentation:
+                for p in np.nditer(this_points[:, :3], op_flags=['readwrite']):
+                    p[...] = p + random.choice(seeds)
+            if 'rot' in augmentation:
+                this_points[:, :3] = rotateX(this_points[:, :3], 720 * random.choice(seeds))
+                this_points[:, :3] = rotateY(this_points[:, :3], 720 * random.choice(seeds))
+                this_points[:, :3] = rotateZ(this_points[:, :3], 720 * random.choice(seeds))
+            if 'scale' in augmentation:
+                s = 1 + random.choice(seeds)
+                this_points[:, :3] = scale(this_points[:, :3], x=s, y=s, z=s)
+
+        # create 3D feature space #############################
+        if 'clp' in augmentation:
+            produced_voxel = produce_voxel(this_points, isClipping=True)
+        else:
+            produced_voxel = this_voxel
+
+        if buffer_size == 1:
+            np.save(this_path, np.asarray(produced_voxel))  # just save the voxel
+            # mark the location of the finger for this radar frame
+            labels[this_identifier] = (recording_dict[closest_recording_timestamp])
+            print('saved to ' + this_path)
+        else:
+            if len(buffer) == buffer_size:
+                buffer = buffer[-buffer_size + 1:]
+                buffer.append(produced_voxel)
+                np.save(this_path, np.asarray(buffer))
+                # mark the location of the finger for this radar frame
+                labels[this_identifier] = (recording_dict[closest_recording_timestamp])
+                print('saved to ' + this_path)
+            else:
+                buffer.append(produced_voxel)
+
+    # make sure that the recording timestamp is not far from that of the radar's
+    assert np.mean(timestamp_diff_list) < 0.001
+
+    # load label dict
+    if os.path.exists(label_path):
+        labels_existing = pickle.load(open(label_path, 'rb'))
+        labels = merge_dict([labels_existing, labels])
+    print('Number of items in the label dict is ' + str(len(labels)))
+    pickle.dump(labels, open(label_path, 'wb'))
