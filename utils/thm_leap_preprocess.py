@@ -4,8 +4,8 @@ import pickle
 import numpy as np
 from utils.path_utils import thm_preprocess, generate_path_thm_leap, thm_leap_preprocess
 
-label_path = 'D:/dataset_thm_leap/label.p'
-dataset_path = 'D:/dataset_thm_leap'
+label_path = 'E:/dataset_thm_leap/label.p'
+dataset_path = 'E:/dataset_thm_leap'
 
 specimen_list = [
 
@@ -40,12 +40,9 @@ for i, path in enumerate(specimen_list):
     # generate orignial data
     print('Processing specimen #' + str(i) + ' ' + str(path[0]) + '__________________________________')
     thm_leap_preprocess(path, buffer_size=timestep, dataset_path=dataset_path, label_path=label_path)
-    thm_leap_preprocess(path, augmentation=['trans'], buffer_size=timestep, dataset_path=dataset_path, label_path=label_path)
+    # thm_leap_preprocess(path, augmentation=['trans'], buffer_size=timestep, dataset_path=dataset_path, label_path=label_path)
     # thm_preprocess(path, augmentation=['scale'], buffer_size=timestep)
     # thm_preprocess(path, augmentation=['rot'], buffer_size=timestep)
-
-
-
 
 # just plot the thing
 # for i, path in enumerate(specimen_list):

@@ -5,40 +5,31 @@ import os
 import matplotlib.pyplot as plt
 from sklearn.model_selection import train_test_split
 
+from utils.data_utils import parse_deltalize_recording
 from utils.graph_utils import smooth_heat_scatter
 from utils.path_utils import generate_train_val_ids
 from sklearn.preprocessing import MinMaxScaler
 
-regressor = load_model('D:/PycharmProjects/mmWave_gesture_iwr6843/models/thm_model.h5')
+
+regressor = load_model('models/121019.h5')
 regressor.summary()
-# this is step = 5
-# dataset_path = 'E:/alldata_second/alldataset/thm_ts5/thm_dataset'
-# label_dict_path = 'E:/alldata_second/alldataset/thm_ts5/thm_label_dict.p'
-# data_without_label = pickle.load(open('E:/alldata_second/alldataset/thm_ts5/thm_data_without_label.p', 'rb'))
 
 # this is step = 1
-dataset_path = 'D:/alldataset/thm_dataset'
-label_dict_path = 'D:/alldataset/thm_label_dict.p'
-data_without_label = pickle.load(open('D:/alldataset/thm_data_without_label.p', 'rb'))
+dataset_path = 'E:/dataset_thm_leap'
+label_path = 'E:/dataset_thm_leap/label.p'
 
-labels = pickle.load(open(label_dict_path, 'rb'))
-scaler = pickle.load(open('D:/PycharmProjects/mmWave_gesture_iwr6843/models/scalers/thm_scaler.p', 'rb'))
-
-# videoData_path = ''
-# video_frame_list = os.listdir(videoData_path)
-# video_frame_timestamps = list(map(lambda x: float(x.strip('.jpg')), video_frame_list))
+labels = pickle.load(open(label_path, 'rb'))
+scaler = pickle.load(open('models/thm_scaler.p', 'rb'))
 
 # get the Y and X
 # take only the first 100 for plotting
 X = []
 Y = []
 
-
 for i, data in enumerate(os.listdir(dataset_path)):
     print('Loading ' + str(i) + ' of ' + str(len(os.listdir(dataset_path))))
-    if data.strip('.npy') not in data_without_label:
-        X.append(np.load(os.path.join(dataset_path, data)))
-        Y.append(labels[data.strip('.npy')])
+    X.append(np.load(os.path.join(dataset_path, data)))
+    Y.append(labels[data.strip('.npy')])
     # if len(X) >= 480:
     #     break
 
@@ -46,7 +37,6 @@ X = np.asarray(X)
 Y = np.asarray(Y)
 
 X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.20, random_state=3, shuffle=True)
-
 
 # make the prediction
 print('Predicting...')

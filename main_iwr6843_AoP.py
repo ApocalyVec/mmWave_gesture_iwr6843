@@ -11,18 +11,18 @@ import os
 import pickle
 
 # data queue global
-from utils.data_utils import produce_voxel, StreamingMovingAverage
+from utils.data_utils import produce_voxel, StreamingMovingAverage, linear_process, Queue
 import numpy as np
 import pyautogui
 
-
-data_q = collections.deque(maxlen=1)
+timestep = 5
+data_q = Queue(maxlen=timestep)
 data_list = []
 processed_data_list = []
 data_shape = (1, 25, 25, 25)
 
 # set up graph
-# START QtAPP for the plot
+# START QtAPP for the plot；
 app = QtGui.QApplication([])
 thm_gui_size = 640, 480
 
@@ -36,7 +36,7 @@ fig_z_y.setLabel('left', text='Y position (m)')
 fig_z_y.setLabel('bottom', text='X position (m)')
 xy_graph = fig_z_y.plot([], [], pen=None, symbol='o')
 
-# set the zv plot
+# set the zv plot'
 fig_z_v = win.addPlot()
 fig_z_v.setXRange(-1, 1)
 fig_z_v.setYRange(-1, 1)
@@ -53,12 +53,14 @@ thumouse_graph = fig_thumouse.plot([], [], pen=None, symbol='o')
 # thread variables
 main_stop_flag = False
 
+is_points = False
+
 today = datetime.datetime.now()
 root_dn = 'data/f_data-' + str(today).replace(':', '-').replace(' ', '_')
 
 # Model Globals
 is_simulate = False
-is_predict = False
+is_predict = True
 
 if is_predict:
     from utils.model_wrapper import NeuralNetwork, onehot_decoder
@@ -75,7 +77,9 @@ class InputThread(Thread):
         input()
         is_collecting_started = True
 
-timelist = []
+
+x_list = []
+
 
 class PredictionThread(Thread):
     def __init__(self, thread_id, model_encoder_dict, thumouse_gui=None, mode=None):
@@ -95,23 +99,21 @@ class PredictionThread(Thread):
         global main_stop_flag
         global thm_gui_size
         global data_shape
-        global is_point
-
-        # general vars
-        buffer_size = 5
-        sequence_buffer = np.zeros(tuple([buffer_size] + list(data_shape)))
+        global is_points
 
         # disable the failsafe
         pyautogui.FAILSAFE = False
 
         # thumouse related vars
-        thm_timestep = 1
 
-        x_factor = 5.0
-        y_factor = 0.0
-        z_factor = 1.0
+        x_a, y_a, z_a = -500000.0, 0.0, 0.0
+        x_b, y_b, z_b = -25.0, 0.0, 0.0
 
-        ma_x = StreamingMovingAverage(window_size=5)
+        # x_a, y_a, z_a = 0.0, 100000.0, 0.0
+        # x_b, y_b, z_b = 0.0, 15.0, 0.0
+
+
+        ma_x = StreamingMovingAverage(window_size=1)
         ma_y = StreamingMovingAverage(window_size=3)
 
         if 'thm' in self.mode:
@@ -127,64 +129,48 @@ class PredictionThread(Thread):
 
         while True:
             try:
-                # time.sleep(0.11)
+                time.sleep(0.05)
                 start = time.time()
                 # retrieve the data from deque
                 if main_stop_flag:
                     break
+                if 'idp' in self.mode:
+                    pass
+                    # time.sleep(0.5)
+                    # idp_pre_result = idp_model.predict(x=sequence_buffer)
+                    # pre_argmax = np.argmax(idp_pre_result)
+                    # pre_amax = np.amax(idp_pre_result)
+                    #
+                    # if pre_amax > idp_threshold:  # a character is written
+                    #     if pre_argmax == 5:
+                    #         print('No One is Writing' + '    amax = ' + str(pre_amax))
+                    #     else:
+                    #         print('You just wrote: ' + idp_pred_dict[int(pre_argmax)] + '    amax = ' + str(pre_amax))
+                    #         # clear the buffer
+                    #         sequence_buffer = np.zeros(tuple([buffer_size] + list(data_shape)))
+                    # else:
+                    #     print('No writing, amax = ' + str(pre_amax))
 
-                if len(data_q) != 0:
-                    # ditch the tail, append to head
-                    this_data = data_q.pop()
-                    sequence_buffer = np.concatenate((sequence_buffer[1:], np.expand_dims(this_data, axis=0)))
-
-                    if 'idp' in self.mode:
-                        pass
-                        # time.sleep(0.5)
-                        # idp_pre_result = idp_model.predict(x=sequence_buffer)
-                        # pre_argmax = np.argmax(idp_pre_result)
-                        # pre_amax = np.amax(idp_pre_result)
-                        #
-                        # if pre_amax > idp_threshold:  # a character is written
-                        #     if pre_argmax == 5:
-                        #         print('No One is Writing' + '    amax = ' + str(pre_amax))
-                        #     else:
-                        #         print('You just wrote: ' + idp_pred_dict[int(pre_argmax)] + '    amax = ' + str(pre_amax))
-                        #         # clear the buffer
-                        #         sequence_buffer = np.zeros(tuple([buffer_size] + list(data_shape)))
-                        # else:
-                        #     print('No writing, amax = ' + str(pre_amax))
-
-                    if 'thm' in self.mode:
-                        # if not np.any(sequence_buffer[-1]):
-                        if thm_timestep != 1:
-                            thm_pred_result = thm_model.predict(x=np.expand_dims(sequence_buffer[-thm_timestep:], axis=0))
-                        else:
-                            thm_pred_result = thm_model.predict(x=np.expand_dims(this_data, axis=0))
+                if 'thm' in self.mode:
+                    if len(data_q) == timestep and is_points:
+                        thm_pred_result = thm_model.predict(x=np.expand_dims(data_q.get_list(), axis=0))
 
                         # expand dim for single sample batch
                         decoded_result = thm_decoder.inverse_transform(thm_pred_result)
 
-                        delta_x = decoded_result[0][0] * x_factor
-                        delta_y = decoded_result[0][1] * y_factor
-                        # delta_z = decoded_result[0][2] * z_factor
+                        delta_x = linear_process(a=x_a, b=x_b, x=decoded_result[0][0]);
+                        delta_y = linear_process(a=y_a, b=y_b, x=decoded_result[0][1]);
 
-                        delta_x_ma = ma_x.process(delta_x)
-                        delta_y_ma = ma_y.process(delta_y)
+                        delta_x = ma_x.process(delta_x)
+                        delta_y = ma_y.process(delta_y)
 
-                        # mouse_x = min(max(mouse_x + delta_x, 0), gui_wid_hei[0])
-                        # mouse_y = min(max(mouse_y + delta_y, 0), gui_wid_hei[1])
-
+                        x_list.append(delta_x)
                         # move the actual mouse
-                        pyautogui.moveRel(delta_x_ma, delta_y_ma, duration=.1)
-                        # if self.thumouse_gui is not None:
-                            # self.thumouse_gui.setData([mouse_x], [mouse_y])
-
-                        print(str(delta_x_ma) + '       ' + str(delta_y_ma) + '     ' + str(len(data_q)))
-
-                timelist.append(time.time() - start)
+                        pyautogui.moveRel(delta_x, delta_y)
+                        print(str(delta_x) + '       ' + str(delta_y) + '     len of data queue' + str(len(data_q)))
             except KeyboardInterrupt:
                 return
+
 
 def load_model(model_path, encoder=None):
     model = NeuralNetwork()
@@ -203,14 +189,13 @@ def main():
     global thumouse_graph
     global is_predict
     global main_stop_flag
-    global is_point
+    global is_points
 
     if is_predict:
-        # my_mode = ['thm', 'idp']
         my_mode = ['thm']
 
-        thm_model_path = 'D:/PycharmProjects/mmWave_gesture_iwr6843/models/thm_xyz_cnn/model.h5'
-        thm_scaler_path = 'D:/PycharmProjects/mmWave_gesture_iwr6843/models/thm_xyz_cnn/scaler.p'
+        thm_model_path = 'models/121019.h5'
+        thm_scaler_path = 'models/120519_data_scaler.p'
         # idp_model_path = 'D:/code/DoubleMU/models/palmPad_model.h5'
 
         model_dict = {'thm': load_model(thm_model_path,
@@ -225,11 +210,11 @@ def main():
     # input_thread = InputThread(1)
     # input_thread.start()
 
-    configFileName = 'profiles/profile_further_tuned.cfg'
-    dataPortName = 'COM9'
-    userPortName = 'COM8'
+    configFileName = 'profiles/20fps_04RR_14VR_12CT_8DT.cfg'
+    dataPortName = 'COM14'
+    userPortName = 'COM3'
 
-    # open the serial port to the radar
+    # open the serial por20fpst to the radar
     user_port, data_port = serial_iwr6843.serialConfig(configFileName, dataPortName=dataPortName,
                                                        userPortName=userPortName)
     serial_iwr6843.clear_serial_buffer(user_port, data_port)
@@ -253,17 +238,15 @@ def main():
                 data_list.append((frame_timestamp, detected_points))
                 processed_data_list.append((frame_timestamp, processed_data))
 
-                if is_predict and len(detected_points) != 0:
-                    data_q.append(processed_data)
+                is_points = len(detected_points) > 0
+
+                data_q.push_right(processed_data)
 
                 xy_graph.setData(detected_points[:, 0], detected_points[:, 1])
-                # zd_graph.setData(detected_points[:, 2], detected_points[:, 3])
-
                 zd_graph.setData(detected_points[:, 2], detected_points[:, 3])
 
             else:
                 pass
-                # print('Packet is not complete yet!')
 
             QtGui.QApplication.processEvents()
         except KeyboardInterrupt as ki:
@@ -279,22 +262,22 @@ def main():
     win.close()
 
     # print the information about the frames collected
-    print('The number of frame collected is ' + str(len(data_list)))
-    time_record = max(x[0] for x in data_list) - min(x[0] for x in data_list)
-    expected_frame_num = time_record * 20
-    frame_drop_rate = len(data_list) / expected_frame_num
-    print('Recording time is ' + str(time_record))
-    print('The expected frame num is ' + str(expected_frame_num))
-    print('Frame drop rate is ' + str(1 - frame_drop_rate))
+    if len(data_list) > 0:
+        print('The number of frame collected is ' + str(len(data_list)))
+        time_record = max(x[0] for x in data_list) - min(x[0] for x in data_list)
+        expected_frame_num = time_record * 20
+        frame_drop_rate = len(data_list) / expected_frame_num
+        print('Recording time is ' + str(time_record))
+        print('The expected frame num is ' + str(expected_frame_num))
+        print('Frame drop rate is ' + str(1 - frame_drop_rate))
 
     # close all the threads
     main_stop_flag = True
     if is_predict:
         pred_thread.join()
-
-    # do you wish to save the recorded frames?
     is_save = input('do you wish to save the recorded frames? [y/n]')
 
+    # do you wish to save the recorded frames?
     if is_save == 'y':
         os.mkdir(root_dn)
         # save the points file
