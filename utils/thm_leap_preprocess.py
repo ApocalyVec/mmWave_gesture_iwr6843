@@ -4,8 +4,8 @@ import pickle
 import numpy as np
 from utils.path_utils import thm_preprocess, generate_path_thm_leap, thm_leap_preprocess
 
-label_path = 'D:/dataset_thm_leap/label.p'
-dataset_path = 'D:/dataset_thm_leap'
+label_path = 'E:/dataset_thm_leap/label.p'
+dataset_path = 'E:/dataset_thm_leap'
 
 specimen_list = [
 

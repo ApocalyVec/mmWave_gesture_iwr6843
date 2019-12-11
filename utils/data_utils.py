@@ -242,5 +242,33 @@ def parse_deltalize_recording(file: str) -> dict:
     return dict(recording_list), np.asarray(xyz_array)
 
 
-def process_x(a: float, b: float, x: float):
-    return a*x + b
+def linear_process(a: float, b: float, x: float):
+    return x * a + b
+
+
+class Queue:
+    def __init__(self, maxlen):
+        self.data = list()
+        self.maxlen = maxlen
+
+    def __getitem__(self, key):
+        # It's probably better to catch any IndexError to at least provide
+        # a class-specific exception
+        return self.data[key]
+
+    def get_list(self):
+        return self.data
+
+    def __len__(self):
+        return len(self.data)
+
+    def push_right(self, d):
+        self.data = self.data[-self.maxlen + 1:] + [d]
+
+    def pop_right(self):
+        if len(self.data) > 0:
+            temp = self.data[-1]
+            self.data = self.data[:-1]
+            return temp
+        else:
+            return None
