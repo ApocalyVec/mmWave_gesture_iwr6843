@@ -22,7 +22,7 @@ label_dict_path = 'D:/alldataset/thm_label_dict.p'
 data_without_label = pickle.load(open('D:/alldataset/thm_data_without_label.p', 'rb'))
 
 labels = pickle.load(open(label_dict_path, 'rb'))
-scaler = pickle.load(open('D:/PycharmProjects/mmWave_gesture_iwr6843/models/scalers/thm_scaler.p', 'rb'))
+scaler = pickle.load(open('D:/PycharmProjects/mmWave_gesture_iwr6843/models/scalers/120519_data_scaler.p', 'rb'))
 
 # videoData_path = ''
 # video_frame_list = os.listdir(videoData_path)

@@ -40,12 +40,9 @@ for i, path in enumerate(specimen_list):
     # generate orignial data
     print('Processing specimen #' + str(i) + ' ' + str(path[0]) + '__________________________________')
     thm_leap_preprocess(path, buffer_size=timestep, dataset_path=dataset_path, label_path=label_path)
-    thm_leap_preprocess(path, augmentation=['trans'], buffer_size=timestep, dataset_path=dataset_path, label_path=label_path)
+    # thm_leap_preprocess(path, augmentation=['trans'], buffer_size=timestep, dataset_path=dataset_path, label_path=label_path)
     # thm_preprocess(path, augmentation=['scale'], buffer_size=timestep)
     # thm_preprocess(path, augmentation=['rot'], buffer_size=timestep)
-
-
-
 
 # just plot the thing
 # for i, path in enumerate(specimen_list):

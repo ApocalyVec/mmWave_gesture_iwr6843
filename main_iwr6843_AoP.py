@@ -15,6 +15,7 @@ from utils.data_utils import produce_voxel, StreamingMovingAverage
 import numpy as np
 import pyautogui
 
+
 data_q = collections.deque(maxlen=1)
 data_list = []
 processed_data_list = []
@@ -74,9 +75,7 @@ class InputThread(Thread):
         input()
         is_collecting_started = True
 
-
 timelist = []
-
 
 class PredictionThread(Thread):
     def __init__(self, thread_id, model_encoder_dict, thumouse_gui=None, mode=None):
@@ -106,11 +105,11 @@ class PredictionThread(Thread):
         pyautogui.FAILSAFE = False
 
         # thumouse related vars
-        thm_timestep = 1
+        thm_timestep = 5
 
-        x_factor = 5.0
+        x_factor = 100000.0
         y_factor = 0.0
-        z_factor = 1.0
+        z_factor = 5000.0
 
         ma_x = StreamingMovingAverage(window_size=5)
         ma_y = StreamingMovingAverage(window_size=3)
@@ -157,10 +156,9 @@ class PredictionThread(Thread):
                         #     print('No writing, amax = ' + str(pre_amax))
 
                     if 'thm' in self.mode:
-                        # if not np.any(sequence_buffer[-1]):
+                        time.sleep(0.05)
                         if thm_timestep != 1:
-                            thm_pred_result = thm_model.predict(
-                                x=np.expand_dims(sequence_buffer[-thm_timestep:], axis=0))
+                            thm_pred_result = thm_model.predict(x=np.expand_dims(sequence_buffer[-thm_timestep:], axis=0))
                         else:
                             thm_pred_result = thm_model.predict(x=np.expand_dims(this_data, axis=0))
 
@@ -171,23 +169,18 @@ class PredictionThread(Thread):
                         delta_y = decoded_result[0][1] * y_factor
                         # delta_z = decoded_result[0][2] * z_factor
 
-                        delta_x_ma = ma_x.process(delta_x)
-                        delta_y_ma = ma_y.process(delta_y)
-
-                        # mouse_x = min(max(mouse_x + delta_x, 0), gui_wid_hei[0])
-                        # mouse_y = min(max(mouse_y + delta_y, 0), gui_wid_hei[1])
+                        # process moving average
+                        # delta_x_ma = ma_x.process(delta_x)
+                        # delta_y_ma = ma_y.process(delta_y)
 
                         # move the actual mouse
-                        pyautogui.moveRel(delta_x_ma, delta_y_ma, duration=.1)
-                        # if self.thumouse_gui is not None:
-                        # self.thumouse_gui.setData([mouse_x], [mouse_y])
+                        pyautogui.moveRel(delta_x, delta_y, duration=.1)
 
-                        print(str(delta_x_ma) + '       ' + str(delta_y_ma) + '     ' + str(len(data_q)))
+                        print(str(delta_x) + '       ' + str(delta_y) + '     ' + str(len(data_q)))
 
                 timelist.append(time.time() - start)
             except KeyboardInterrupt:
                 return
-
 
 def load_model(model_path, encoder=None):
     model = NeuralNetwork()
@@ -211,17 +204,15 @@ def main():
     if is_predict:
         my_mode = ['thm']
 
-        thm_model_path = 'D:/PycharmProjects/mmWave_gesture_iwr6843/models/thm_xyz_cnn/model.h5'
-        thm_scaler_path = 'D:/PycharmProjects/mmWave_gesture_iwr6843/models/thm_xyz_cnn/scaler.p'
+        thm_model_path = 'models/120819.h5'
+        thm_scaler_path = 'models/120519_data_scaler.p'
         # idp_model_path = 'D:/code/DoubleMU/models/palmPad_model.h5'
 
-        model_dict = {
-            # 'thm': load_model(thm_model_path,
-            #                   encoder=thm_scaler_path),
-            'thm': load_model(thm_model_path),
-            # 'idp': load_model(idp_model_path,
-            #                   encoder=onehot_decoder())
-        }
+        model_dict = {'thm': load_model(thm_model_path,
+                                        encoder=thm_scaler_path),
+                      # 'idp': load_model(idp_model_path,
+                      #                   encoder=onehot_decoder())
+                      }
         pred_thread = PredictionThread(1, model_encoder_dict=model_dict, thumouse_gui=thumouse_graph, mode=my_mode)
         pred_thread.start()
 
@@ -296,6 +287,7 @@ def main():
     if is_predict:
         pred_thread.join()
     is_save = input('do you wish to save the recorded frames? [y/n]')
+
 
     # do you wish to save the recorded frames?
     if is_save == 'y':

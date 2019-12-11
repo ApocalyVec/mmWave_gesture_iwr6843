@@ -240,3 +240,7 @@ def parse_deltalize_recording(file: str) -> dict:
 
     assert len(xyz_array) == len(recording_list)
     return dict(recording_list), np.asarray(xyz_array)
+
+
+def process_x(a: float, b: float, x: float):
+    return a*x + b
