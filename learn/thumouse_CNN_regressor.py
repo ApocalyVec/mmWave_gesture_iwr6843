@@ -37,9 +37,10 @@ if __name__ == '__main__':
 
     for i, data in enumerate(os.listdir(dataset_path)):
         print('Loading ' + str(i) + ' of ' + str(len(os.listdir(dataset_path))))
-        if data.split('.')[-1] == '.npy':  # only load .npy files
+        if data.split('.')[-1] == 'npy':  # only load .npy files
             X.append(np.load(os.path.join(dataset_path, data)))
             Y.append(labels[data.strip('.npy')])
+            print('loaded: ' + data)
     print('Load Finished!')
 
     X = np.asarray(X)
