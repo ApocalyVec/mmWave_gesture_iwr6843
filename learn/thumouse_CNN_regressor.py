@@ -22,13 +22,14 @@ if __name__ == '__main__':
 
     is_use_pre_train = False
     epochs = 50000
-    timesteps = 5
+    timesteps = 3
 
     pre_trained_path = 'D:/PycharmProjects/mmWave_gesture_iwr6843/models/thm_model.h5'
 
-    dataset_path = 'D:/dataset_thm_leap'
-    label_path = 'D:/dataset_thm_leap/label.p'
-    scaler_path = 'D:/train_result/120519_data_scaler.p'
+    date = 121319
+    label_path = 'D:/dataset_thm_leap_' + str(date) + '/label.p'
+    dataset_path = 'D:/dataset_thm_leap_' + str(date)
+    scaler_path = 'D:/train_result/thm_scaler' + str(date) + '.p'
     labels = pickle.load(open(label_path, 'rb'))
 
     ## Generators

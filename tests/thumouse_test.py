@@ -11,12 +11,12 @@ from utils.path_utils import generate_train_val_ids
 from sklearn.preprocessing import MinMaxScaler
 
 
-regressor = load_model('models/121019.h5')
+regressor = load_model('models/121019_1.h5')
 regressor.summary()
 
 # this is step = 1
-dataset_path = 'E:/dataset_thm_leap'
-label_path = 'E:/dataset_thm_leap/label.p'
+dataset_path = 'D:/dataset_thm_leap'
+label_path = 'D:/dataset_thm_leap/label.p'
 
 labels = pickle.load(open(label_path, 'rb'))
 scaler = pickle.load(open('models/thm_scaler.p', 'rb'))
@@ -28,10 +28,12 @@ Y = []
 
 for i, data in enumerate(os.listdir(dataset_path)):
     print('Loading ' + str(i) + ' of ' + str(len(os.listdir(dataset_path))))
-    X.append(np.load(os.path.join(dataset_path, data)))
-    Y.append(labels[data.strip('.npy')])
-    # if len(X) >= 480:
-    #     break
+    if data.split('.')[-1] == 'npy':  # only load .npy files
+
+        X.append(np.load(os.path.join(dataset_path, data)))
+        Y.append(labels[data.strip('.npy')])
+        print('loaded: ' + data)
+print('Load Finished!')
 
 X = np.asarray(X)
 Y = np.asarray(Y)
@@ -123,6 +125,7 @@ track_x_diff = Y_test[:, 0] - Y_predict[:, 0]
 track_y_diff = Y_test[:, 1] - Y_predict[:, 1]
 track_z_diff = Y_test[:, 2] - Y_predict[:, 2]
 
+##################################################################################
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.stats import kde
@@ -132,41 +135,15 @@ data = np.transpose(np.asarray([track_x_diff, track_y_diff]))
 x = track_x_diff
 y = track_y_diff
 
-sct_size = 75
-# # Create a figure with 6 plot areas
-# fig, axes = plt.subplots(ncols=6, nrows=1, figsize=(21, 5))
-#
-# Everything sarts with a Scatterplot
-# axes[0].set_title('Scatterplot')
-# axes[0].plot(x, y, 'ko')
-# As you can see there is a lot of overplottin here!
+sct_size = 0.005
+scatter_size = 0.001
 
-# Thus we can cut the plotting window in several hexbins
 nbins = 100
-# axes[1].set_title('Hexbin')
-# axes[1].hexbin(x, y, gridsize=nbins, cmap=plt.cm.BuGn_r)
 
-# 2D Histogram
-# axes[2].set_title('2D Histogram')
-# axes[2].hist2d(x, y, bins=nbins, cmap=plt.cm.BuGn_r)
-
-# Evaluate a gaussian kde on a regular grid of nbins x nbins over data extents
 k = kde.gaussian_kde(data.T)
 xi, yi = np.mgrid[x.min():x.max():nbins * 1j, y.min():y.max():nbins * 1j]
 zi = k(np.vstack([xi.flatten(), yi.flatten()]))
 
-# plot a density
-# axes[3].set_title('Calculate Gaussian KDE')
-# axes[3].pcolormesh(xi, yi, zi.reshape(xi.shape), cmap=plt.cm.BuGn_r)
-
-# add shading
-# axes[4].set_title('2D Density with shading')
-# axes[4].pcolormesh(xi, yi, zi.reshape(xi.shape), shading='gouraud', cmap=plt.cm.BuGn_r)
-
-# contour
-# axes[5].set_title('Contour')
-# axes[5].pcolormesh(xi, yi, zi.reshape(xi.shape), shading='gouraud', cmap=plt.cm.BuGn_r)
-# axes[5].contour(xi, yi, zi.reshape(xi.shape))
 
 fig = plt.figure()
 fig.set_size_inches(10, 6)
@@ -175,60 +152,35 @@ ax11 = plt.subplot(234)
 ax11.scatter(x, y, s=6, c='orange')
 ax11.set_xlim(-sct_size, sct_size)
 ax11.set_ylim(-sct_size, sct_size)
-ax11.set_xlabel('X (pixels)')
-ax11.set_ylabel('Y (pixels)')
+ax11.set_xlabel('X')
+ax11.set_ylabel('Y')
 ax11.set_title("X-Y Variance")
 ax11.grid()
 
 ax1 = plt.subplot(231)
 ax1.pcolormesh(xi, yi, zi.reshape(xi.shape), shading='gouraud', cmap=plt.cm.Oranges_r)
 ax1.contour(xi, yi, zi.reshape(xi.shape))
-ax1.set_xlim(-8, 8)
-ax1.set_ylim(-8, 8)
-ax1.set_xlabel('X (pixels)')
-ax1.set_ylabel('Y (pixels)')
+ax1.set_xlim(-scatter_size, scatter_size)
+ax1.set_ylim(-scatter_size, scatter_size)
+ax1.set_xlabel('X')
+ax1.set_ylabel('Y')
 ax1.set_title("X-Y Contour Color Map")
 
 data = np.transpose(np.asarray([track_x_diff, track_z_diff]))
 x = track_x_diff
 y = track_z_diff
 
-# Everything sarts with a Scatterplot
-# axes[0].set_title('Scatterplot')
-# axes[0].plot(x, y, 'ko')
-# As you can see there is a lot of overplottin here!
-
-# Thus we can cut the plotting window in several hexbins
 nbins = 40
-# axes[1].set_title('Hexbin')
-# axes[1].hexbin(x, y, gridsize=nbins, cmap=plt.cm.BuGn_r)
 
-# 2D Histogram
-# axes[2].set_title('2D Histogram')
-# axes[2].hist2d(x, y, bins=nbins, cmap=plt.cm.BuGn_r)
-
-# Evaluate a gaussian kde on a regular grid of nbins x nbins over data extents
 k = kde.gaussian_kde(data.T)
 xi, yi = np.mgrid[x.min():x.max():nbins * 1j, y.min():y.max():nbins * 1j]
 zi = k(np.vstack([xi.flatten(), yi.flatten()]))
 
-# plot a density
-# axes[3].set_title('Calculate Gaussian KDE')
-# axes[3].pcolormesh(xi, yi, zi.reshape(xi.shape), cmap=plt.cm.BuGn_r)
-
-# add shading
-# axes[4].set_title('2D Density with shading')
-# axes[4].pcolormesh(xi, yi, zi.reshape(xi.shape), shading='gouraud', cmap=plt.cm.BuGn_r)
-
-# contour
-# axes[5].set_title('Contour')
-# axes[5].pcolormesh(xi, yi, zi.reshape(xi.shape), shading='gouraud', cmap=plt.cm.BuGn_r)
-# axes[5].contour(xi, yi, zi.reshape(xi.shape))
 
 ax21 = plt.subplot(235)
 ax21.scatter(x, y, s=6, c='orange')
-ax21.set_xlabel('X (pixels)')
-ax21.set_ylabel('Z (pixels)')
+ax21.set_xlabel('X')
+ax21.set_ylabel('Z')
 ax21.set_xlim(-sct_size, sct_size)
 ax21.set_ylim(-sct_size, sct_size)
 ax21.set_title("X-Z Variance")
@@ -237,52 +189,26 @@ ax21.grid()
 ax2 = plt.subplot(232)
 ax2.pcolormesh(xi, yi, zi.reshape(xi.shape), shading='gouraud', cmap=plt.cm.Oranges_r)
 ax2.contour(xi, yi, zi.reshape(xi.shape))
-ax2.set_xlim(-8, 8)
-ax2.set_ylim(-8, 8)
-ax2.set_xlabel('X (pixels)')
-ax2.set_ylabel('Z (pixels)')
+ax2.set_xlim(-scatter_size, scatter_size)
+ax2.set_ylim(-scatter_size, scatter_size)
+ax2.set_xlabel('X')
+ax2.set_ylabel('Z')
 ax2.set_title("X-Z Contour Colormap")
 
 data = np.transpose(np.asarray([track_y_diff, track_z_diff]))
 x = track_y_diff
 y = track_z_diff
 
-# Everything sarts with a Scatterplot
-# axes[0].set_title('Scatterplot')
-# axes[0].plot(x, y, 'ko')
-# As you can see there is a lot of overplottin here!
-
-# Thus we can cut the plotting window in several hexbins
 nbins = 100
-# axes[1].set_title('Hexbin')
-# axes[1].hexbin(x, y, gridsize=nbins, cmap=plt.cm.BuGn_r)
 
-# 2D Histogram
-# axes[2].set_title('2D Histogram')
-# axes[2].hist2d(x, y, bins=nbins, cmap=plt.cm.BuGn_r)
-
-# Evaluate a gaussian kde on a regular grid of nbins x nbins over data extents
 k = kde.gaussian_kde(data.T)
 xi, yi = np.mgrid[x.min():x.max():nbins * 1j, y.min():y.max():nbins * 1j]
 zi = k(np.vstack([xi.flatten(), yi.flatten()]))
 
-# plot a density
-# axes[3].set_title('Calculate Gaussian KDE')
-# axes[3].pcolormesh(xi, yi, zi.reshape(xi.shape), cmap=plt.cm.BuGn_r)
-
-# add shading
-# axes[4].set_title('2D Density with shading')
-# axes[4].pcolormesh(xi, yi, zi.reshape(xi.shape), shading='gouraud', cmap=plt.cm.BuGn_r)
-
-# contour
-# axes[5].set_title('Contour')
-# axes[5].pcolormesh(xi, yi, zi.reshape(xi.shape), shading='gouraud', cmap=plt.cm.BuGn_r)
-# axes[5].contour(xi, yi, zi.reshape(xi.shape))
-
 ax31 = plt.subplot(236)
 ax31.scatter(x, y, s=6, c='orange')
-ax31.set_xlabel('Y (pixels)')
-ax31.set_ylabel('Z (pixels)')
+ax31.set_xlabel('Y')
+ax31.set_ylabel('Z')
 ax31.set_xlim(-sct_size, sct_size)
 ax31.set_ylim(-sct_size, sct_size)
 ax31.set_title("Y-Z Variance")
@@ -291,13 +217,14 @@ ax31.grid()
 ax3 = plt.subplot(233)
 ax3.pcolormesh(xi, yi, zi.reshape(xi.shape), shading='gouraud', cmap=plt.cm.Oranges_r)
 ax3.contour(xi, yi, zi.reshape(xi.shape))
-ax3.set_xlim(-8, 8)
-ax3.set_ylim(-8, 8)
-ax3.set_xlabel('Y (pixels)')
-ax3.set_ylabel('Z (pixels)')
+ax3.set_xlim(-scatter_size, scatter_size)
+ax3.set_ylim(-scatter_size, scatter_size)
+ax3.set_xlabel('Y')
+ax3.set_ylabel('Z')
 ax3.set_title("Y-Z Contour Colormap")
 
 plt.show()
+##################################################################################
 
 
 from sklearn import metrics

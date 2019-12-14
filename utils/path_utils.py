@@ -333,14 +333,14 @@ def generate_path(subject_name: str, case_index: int, mode: str) -> tuple:
     return radar_point_data_path, radar_voxel_data_path, videoData_path, mergedImg_path, out_path, identity_string
 
 
-def generate_path_thm_leap(subject_name: str, case_index: int) -> tuple:
+def generate_path_thm_leap(subject_name: str, case_index: int, date: int) -> tuple:
 
     identity_string = subject_name + '_' + str(case_index)
     f_dir = 'f_data_thm_' + identity_string
     v_file = 'recording_' + identity_string + '.txt'
 
-    f_data_root = 'D:/data_thm_leap/data'
-    recording_data_root = 'D:/data_thm_leap/recording'
+    f_data_root = 'D:/data_thm_leap_' + str(date) +'/data'
+    recording_data_root = 'D:/data_thm_leap_' + str(date) +'/recordings'
 
     radar_point_data_path = os.path.join(f_data_root, f_dir, 'f_data_points.p')
     radar_voxel_data_path = os.path.join(f_data_root, f_dir, 'f_data_voxel.p')
