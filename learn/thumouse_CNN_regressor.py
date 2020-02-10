@@ -50,7 +50,7 @@ if __name__ == '__main__':
     # minmax normallize y
     scaler = MinMaxScaler()
     Y = scaler.fit_transform(Y)
-    pickle.dump(scaler, open('D:/PycharmProjects/mmWave_gesture_iwr6843/models/120519_data_scaler.p', 'wb'))
+    pickle.dump(scaler, open('D:/PycharmProjects/mmWave_gesture_iwr6843/models/data_scaler_' + str(date) + '.p', 'wb'))
 
     print('Splitting test-train...')
     X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.20, random_state=3, shuffle=True)
