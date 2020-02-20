@@ -100,7 +100,7 @@ class CustomFigCanvas(FigureCanvas, TimedAnimation):
         self.ax1.set_ylabel('raw data')
 
 
-        self.im = matplotlib.pyplot.imshow(sim_heatmap((50, 50)))
+        # self.im = matplotlib.pyplot.imshow(sim_heatmap((50, 50)))
 
         self.line1 = Line2D([], [], color='blue')
         self.line1_tail = Line2D([], [], color='red', linewidth=2)
