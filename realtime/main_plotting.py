@@ -99,7 +99,7 @@ class CustomFigCanvas(FigureCanvas, TimedAnimation):
         # self.ax1 settings
         self.ax1.set_xlabel('Heatmap X')
         self.ax1.set_ylabel('Heatmap Y')
-        # self.im = self.ax1.imshow(sim_heatmap(self.hm_shape))
+        # self.a = self.ax1.imshow(sim_heatmap(self.hm_shape))
         # self.line1 = Line2D([], [], color='blue')
         # self.line1_tail = Line2D([], [], color='red', linewidth=2)
         # self.line1_head = Line2D([], [], color='red', marker='o', markeredgecolor='r')
@@ -142,7 +142,7 @@ class CustomFigCanvas(FigureCanvas, TimedAnimation):
         #     pass
 
     def _draw_frame(self, framedata):
-        # self.im.set_array(self.addedData)
+        # self.a.set_array(self.addedData)
         # margin = 2
         # while(len(self.addedData) > 0):
         #     self.y = np.roll(self.y, -1)

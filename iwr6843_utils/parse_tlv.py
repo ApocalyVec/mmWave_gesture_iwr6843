@@ -47,7 +47,7 @@ def tlvHeader(in_data):
     """
 
     :param in_data:
-    :return: if no detected point at this frame, the detected point will be an empty array
+    :return: if no detected point at this frame, the detected point will be an empty a
     """
     magic = b'\x02\x01\x04\x03\x06\x05\x08\x07'
     headerLength = 36

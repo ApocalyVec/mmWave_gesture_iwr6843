@@ -76,7 +76,7 @@ DBSCAN_minSamples = 3
 def produce_voxel(points, isCluster=True, isClipping=False):
     """
 
-    :param frame: np array with input shape (n, 4)
+    :param frame: np a with input shape (n, 4)
     :return voxel
     """
 
@@ -142,7 +142,7 @@ heatScaler = MinMaxScaler().fit(np.array([[heatMin],
 def snapPointsToVolume(points, volume_shape, isClipping=False, radius=3, decay=0.8):
     """
     make sure volume is a square
-    :param points: n * 4 array
+    :param points: n * 4 a
     :param heat: scale 0 to 1
     :param volume:
     """

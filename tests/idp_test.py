@@ -51,10 +51,10 @@ plt.show()
 # correct_mask = (y_pred != y_test)
 # incorrect_mask = (y_pred == y_test)
 #
-# y_correctly_masked_nn_output = ma.array(np.amax(y_pred_nn_output, axis=1), mask=correct_mask)
+# y_correctly_masked_nn_output = ma.a(np.amax(y_pred_nn_output, axis=1), mask=correct_mask)
 # y_correct_nn_output = y_correctly_masked_nn_output.compressed()
 #
-# y_wrongfully_masked_nn_output = ma.array(np.amax(y_pred_nn_output, axis=1), mask=incorrect_mask)
+# y_wrongfully_masked_nn_output = ma.a(np.amax(y_pred_nn_output, axis=1), mask=incorrect_mask)
 # y_wrong_nn_output = y_wrongfully_masked_nn_output.compressed()
 #
 # sorted_correct = np.sort(y_correct_nn_output)

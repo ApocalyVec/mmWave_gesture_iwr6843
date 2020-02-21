@@ -8,16 +8,10 @@ from PyQt5.QtCore import QThread, pyqtSignal, pyqtSlot, QObject, QRunnable, QThr
 from PyQt5.QtGui import QPixmap, QImage
 from PyQt5.QtWidgets import QApplication, QGraphicsPixmapItem, QGraphicsScene, QGraphicsView, QVBoxLayout, QWidget, \
     QGridLayout, QMainWindow, qApp, QLabel
-from matplotlib.figure import Figure
-from matplotlib.animation import TimedAnimation
-from matplotlib.lines import Line2D
-from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg as FigureCanvas
 import time
-import threading
-import matplotlib
-import matplotlib.pyplot as plt
-
-from realtime.simulation import sim_heatmap
+import pyqtgraph as pg
+from realtime.simulation import sim_heatmap, sim_detected_points
+from utils.img_utils import array_to_colormap_qim, array_to_3D_scatter_qim
 
 
 class WorkerSignals(QObject):
@@ -34,36 +28,44 @@ class Worker(QRunnable):
 
     @pyqtSlot()
     def run(self):
-        frame_hm_im = sim_heatmap((100, 100))
-        frame_hm_qim = image_to_qim(frame_hm_im)
-        self.signals.result.emit(frame_hm_qim)
+        spec_array = sim_heatmap((100, 100))
+        spec_qim = array_to_colormap_qim(spec_array)
+
+        pts_array = sim_detected_points()
+        # pts_qim = array_to_3D_scatter_qim(pts_array)
+
+        self.signals.result.emit({'spec': spec_qim,
+                                  'pts': pts_array})
 
 
 class MainWindow(QMainWindow):
     def __init__(self, refresh, *args, **kwargs):
         super(MainWindow, self).__init__(*args, **kwargs)
-        self.resize(1280, 720)
-        w = QWidget()
+        self.resize(1920, 1080)
+        pg.setConfigOption('background', 'w')
 
+        w = QWidget()
         # create main layout
-        lay = QGridLayout(self)
-        # add graphic view
-        gv = QGraphicsView()
-        lay.addWidget(gv, *(0, 2))
-        scene = QGraphicsScene(self)
-        gv.setScene(scene)
-        self.pixmap_item = QGraphicsPixmapItem()
-        scene.addItem(self.pixmap_item)
-        # add the interrupt buttong
+        self.lay = QGridLayout(self)
+        # add spectrogram graphic view
+        self.spec_pixmap_item = QGraphicsPixmapItem()
+        self.init_spec_view()
+        # add detected points plots
+        self.scatterXY = self.init_pts_view(pos=(0, 3))
+        self.scatterZD = self.init_pts_view(pos=(0, 4))
+
+        # add the interrupt button
         self.interruptBtn = QtWidgets.QPushButton(text='Interrupt')
         self.interruptBtn.clicked.connect(self.interruptBtnAction)
-        lay.addWidget(self.interruptBtn, *(0, 1))
+        self.lay.addWidget(self.interruptBtn, *(0, 1))
+
         # add dialogue label
         self.dialogueLabel = QLabel()
         self.dialogueLabel.setText("Running")
-        lay.addWidget(self.dialogueLabel, *(0, 0))
+        self.lay.addWidget(self.dialogueLabel, *(0, 0))
 
-        w.setLayout(lay)
+        # set the main layout
+        w.setLayout(self.lay)
         self.setCentralWidget(w)
         self.show()
 
@@ -74,13 +76,27 @@ class MainWindow(QMainWindow):
         self.timer.timeout.connect(self.recurring_timer)
         self.timer.start()
 
-        # self.workerThread = QThread()
-        # self.worker = ProcessWorker()
-        # self.worker.moveToThread(self.workerThread)
-        # self.workerThread.finished.connect(self.worker.deleteLater)
-        # self.workerThread.started.connect(self.worker.doWork)
-        # self.worker.imageChanged.connect(self.setImage)
-        # self.workerThread.start()
+    def init_spec_view(self):
+        spc_gv = QGraphicsView()
+        self.lay.addWidget(spc_gv, *(0, 2))
+        scene = QGraphicsScene(self)
+        spc_gv.setScene(scene)
+        scene.addItem(self.spec_pixmap_item)
+
+    def init_pts_view(self, pos):
+
+        pts_plt = pg.PlotWidget()
+        pts_plt.setXRange(0., 1.)
+        pts_plt.setYRange(0., 1.)
+        self.lay.addWidget(pts_plt, *pos)
+        scatter = pg.ScatterPlotItem(pen=pg.mkPen(width=5, color='b'), symbol='o', size=1)
+        pts_plt.addItem(scatter)
+        return scatter
+        # pts_gv = QGraphicsView()
+        # self.lay.addWidget(pts_gv, *(0, 3))
+        # scene = QGraphicsScene(self)
+        # pts_gv.setScene(scene)
+        # scene.addItem(self.pts_pixmap_item)
 
     def interruptBtnAction(self):
         self.timer.stop()
@@ -91,25 +107,16 @@ class MainWindow(QMainWindow):
         worker.signals.result.connect(self.update_image)
         self.threadpool.start(worker)
 
-    def update_image(self, image):
-        qpixmap = QPixmap(image)
-        self.pixmap_item.setPixmap(qpixmap)
-
-
-timing_list = []
-
-
-def image_to_qim(im):
-    start = time.time()
-    im = plt.imshow(im)
-    color_matrix = im.cmap(im.norm(im.get_array()))
-    qim = qimage2ndarray.array2qimage(color_matrix, normalize=True)
-    timing_list.append(time.time() - start)
-    return qim
+    def update_image(self, data_dict):
+        spec_qpixmap = QPixmap(data_dict['spec'])
+        self.spec_pixmap_item.setPixmap(spec_qpixmap)
+        # update the scatter
+        self.scatterXY.setData(data_dict['pts'][:, 0], data_dict['pts'][:, 1])
+        self.scatterZD.setData(data_dict['pts'][:, 2], data_dict['pts'][:, 3])
 
 
 if __name__ == '__main__':
-    refresh = 33
+    refresh = 33  # refresh every x ms
 
     app = QApplication(sys.argv)
     window = MainWindow(refresh=refresh)

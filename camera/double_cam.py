@@ -47,8 +47,8 @@ while True:
     # upper_v = cv2.getTrackbarPos("U-V", "Trackbars")
 
 
-    # lower_red = np.array([lower_h, lower_s, lower_v])
-    # upper_red = np.array([upper_h, upper_s, upper_v])
+    # lower_red = np.a([lower_h, lower_s, lower_v])
+    # upper_red = np.a([upper_h, upper_s, upper_v])
     #
     # mask = cv2.inRange(hsv, lower_red, upper_red)
 
