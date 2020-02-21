@@ -19,8 +19,6 @@ import time
 import threading
 import matplotlib
 
-from realtime.simulation import sim_heatmap
-
 matplotlib.use("Qt5Agg")
 
 

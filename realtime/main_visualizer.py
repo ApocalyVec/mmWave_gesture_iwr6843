@@ -1,17 +1,13 @@
 import sys
 
-import cv2
-import qimage2ndarray
-from PyQt5 import QtCore, QtGui, QtWidgets
-import numpy as np
-from PyQt5.QtCore import QThread, pyqtSignal, pyqtSlot, QObject, QRunnable, QThreadPool, QTimer
-from PyQt5.QtGui import QPixmap, QImage
-from PyQt5.QtWidgets import QApplication, QGraphicsPixmapItem, QGraphicsScene, QGraphicsView, QVBoxLayout, QWidget, \
-    QGridLayout, QMainWindow, qApp, QLabel
-import time
+from PyQt5 import QtWidgets
+from PyQt5.QtCore import pyqtSignal, pyqtSlot, QObject, QRunnable, QThreadPool, QTimer
+from PyQt5.QtGui import QPixmap
+from PyQt5.QtWidgets import QApplication, QGraphicsPixmapItem, QGraphicsScene, QGraphicsView, QWidget, \
+    QGridLayout, QMainWindow, QLabel
 import pyqtgraph as pg
 from realtime.simulation import sim_heatmap, sim_detected_points
-from utils.img_utils import array_to_colormap_qim, array_to_3D_scatter_qim
+from utils.img_utils import array_to_colormap_qim
 
 
 class WorkerSignals(QObject):
@@ -113,8 +109,17 @@ class MainWindow(QMainWindow):
 
 
 if __name__ == '__main__':
-    refresh = 33  # refresh_interval every x ms
+    '''
+    User defined variables
+    '''
+    configFileName = 'profiles/20fps_04RR_14VR_12CT_8DT.cfg'  # use your config file
+    dataPortName = 'COM8'  # set this to your standard port
+    userPortName = 'COM9'  # set this to your enhanced port
 
+    '''
+    Start of the application script (do not change this part unless you know what you're doing)
+    '''
+    refresh = 33  # refresh_interval every x ms
     app = QApplication(sys.argv)
     window = MainWindow(refresh_interval=refresh)
     app.exec_()
