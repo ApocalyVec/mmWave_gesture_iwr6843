@@ -30,16 +30,13 @@ class Worker(QRunnable):
     def run(self):
         spec_array = sim_heatmap((100, 100))
         spec_qim = array_to_colormap_qim(spec_array)
-
         pts_array = sim_detected_points()
-        # pts_qim = array_to_3D_scatter_qim(pts_array)
-
         self.signals.result.emit({'spec': spec_qim,
                                   'pts': pts_array})
 
 
 class MainWindow(QMainWindow):
-    def __init__(self, refresh, *args, **kwargs):
+    def __init__(self, refresh_interval, *args, **kwargs):
         super(MainWindow, self).__init__(*args, **kwargs)
         self.resize(1920, 1080)
         pg.setConfigOption('background', 'w')
@@ -72,7 +69,7 @@ class MainWindow(QMainWindow):
         # create thread pool
         self.threadpool = QThreadPool()
         self.timer = QTimer()
-        self.timer.setInterval(refresh)
+        self.timer.setInterval(refresh_interval)
         self.timer.timeout.connect(self.recurring_timer)
         self.timer.start()
 
@@ -116,8 +113,8 @@ class MainWindow(QMainWindow):
 
 
 if __name__ == '__main__':
-    refresh = 33  # refresh every x ms
+    refresh = 33  # refresh_interval every x ms
 
     app = QApplication(sys.argv)
-    window = MainWindow(refresh=refresh)
+    window = MainWindow(refresh_interval=refresh)
     app.exec_()
