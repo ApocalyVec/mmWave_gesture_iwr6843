@@ -16,7 +16,7 @@ def tlvHeaderDecode(data):
     return tlvType, tlvLength
 
 
-def parseDetectedObjects(data, numObj, tlvLength):
+def parseDetectedObjects(data, numObj, tlvLength): #TODO debug this part
     detectedPoints = struct.unpack(str(numObj * 4) + 'f', data[:tlvLength])
     detectedPoints = np.asarray(detectedPoints).reshape(numObj, 4)
     # print(detectedPoints)
@@ -43,7 +43,7 @@ def parseStats(data, tlvLength):
 
 
 
-def tlvHeader(in_data):
+def tlvHeader(in_data): #TODO get rid of the buffer overflow problem
     """
 
     :param in_data:
@@ -54,21 +54,27 @@ def tlvHeader(in_data):
 
     # print('Current data len is: ' + str(len(in_data)))
     offset = in_data.find(magic)
+    if offset == -1:
+        print('no magic found')
+        return False, None, None, True
     data = in_data[offset:]
     if len(data) < headerLength:
-        return False, None, None
+        return False, None, None, False
     try:
         magic, version, length, platform, frameNum, cpuCycles, numObj, numTLVs = struct.unpack('Q7I',
-                                                                                               data[:headerLength])
+                                                                                               data[:headerLength]) #would error if length is too low < 36
     except struct.error:
         # print ("Improper TLV structure found: ", (data,))
-        return False, None, None
+        return False, None, None, False
     # print("Packet ID:\t%d "%(frameNum))
     # print("Version:\t%x "%(version))
     # print("Data Len:\t\t%d", length)
     # print("TLV:\t\t%d "%(numTLVs))
     # print("Detect Obj:\t%d "%(numObj))
     # print("Platform:\t%X "%(platform))
+    if length > 3200-36: #To reset the buffer and drop the frame when the TLV is too large
+        print('length over 3200')
+        return False, None, None, True
     if version > 0x01000005 and len(data) >= length:
         try:
             subFrameNum = struct.unpack('I', data[36:40])[0]
@@ -79,6 +85,8 @@ def tlvHeader(in_data):
 
             for i in range(numTLVs):
                 tlvType, tlvLength = tlvHeaderDecode(data[:8])
+                if tlvLength > 3024 - 8:  # to get rid of the frame that would cause overflow
+                    return False, None, None, True
                 data = data[8:]
                 if tlvType == 1:
                     # print('Outputting Points')
@@ -94,12 +102,12 @@ def tlvHeader(in_data):
                 data = data[tlvLength:]
                 pendingBytes -= (8 + tlvLength)
             data = data[pendingBytes:]  # data that are left
-            return True, data, detected_points
+            return True, data, detected_points, False
         except struct.error:
             # print('Packet is not complete yet')
             pass
 
-    return False, None, None
+    return False, None, None, False
 
 
 if __name__ == "__main__":
